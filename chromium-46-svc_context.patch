@@ -1,0 +1,50 @@
+diff -up chromium-48.0.2564.8/third_party/webrtc/modules/video_coding/codecs/vp9/vp9_impl.h.svc_context chromium-48.0.2564.8/third_party/webrtc/modules/video_coding/codecs/vp9/vp9_impl.h
+--- chromium-48.0.2564.8/third_party/webrtc/modules/video_coding/codecs/vp9/vp9_impl.h.svc_context	2015-11-18 09:12:09.000000000 +0100
++++ chromium-48.0.2564.8/third_party/webrtc/modules/video_coding/codecs/vp9/vp9_impl.h	2015-11-18 14:40:14.954503741 +0100
+@@ -15,10 +15,45 @@
+ #include "webrtc/modules/video_coding/codecs/vp9/include/vp9.h"
+ #include "webrtc/modules/video_coding/codecs/vp9/vp9_frame_buffer_pool.h"
+ 
+-#include "vpx/svc_context.h"
+ #include "vpx/vpx_decoder.h"
+ #include "vpx/vpx_encoder.h"
+ 
++// from vpx/svc_context.h
++
++#define OPTION_BUFFER_SIZE 1024
++#define COMPONENTS 4  // psnr & sse statistics maintained for total, y, u, v
++
++typedef struct SvcInternal {
++  char options[OPTION_BUFFER_SIZE];	   // set by vpx_svc_set_options
++
++  // values extracted from option, quantizers
++  vpx_svc_extra_cfg_t svc_params;
++  int enable_auto_alt_ref[VPX_SS_MAX_LAYERS];
++  int bitrates[VPX_SS_MAX_LAYERS];
++
++  // accumulated statistics
++  double psnr_sum[VPX_SS_MAX_LAYERS][COMPONENTS];   // total/Y/U/V
++  uint64_t sse_sum[VPX_SS_MAX_LAYERS][COMPONENTS];
++  uint32_t bytes_sum[VPX_SS_MAX_LAYERS];
++
++  // codec encoding values
++  int width;	// width of highest layer
++  int height;	// height of highest layer
++  int kf_dist;  // distance between keyframes
++
++  // state variables
++  int psnr_pkt_received;
++  int layer;
++  int use_multiple_frame_contexts;
++
++  char message_buffer[2048];
++  vpx_codec_ctx_t *codec_ctx;
++} SvcInternal_t;
++
++// end vpx/svc_context.h
++
++#include "vpx/vp8cx.h"
++
+ namespace webrtc {
+ 
+ class ScreenshareLayersVP9;

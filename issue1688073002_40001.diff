@@ -1,0 +1,56 @@
+Index: content/common/gpu/media/vaapi_wrapper.cc
+diff --git a/content/common/gpu/media/vaapi_wrapper.cc b/content/common/gpu/media/vaapi_wrapper.cc
+index db38f32f7f8ee6fca9a08cb3560f644f76cde222..2a18b3ff0ff67ba50f28e9acd2eb79771e584cd1 100644
+--- a/content/common/gpu/media/vaapi_wrapper.cc
++++ b/content/common/gpu/media/vaapi_wrapper.cc
+@@ -369,11 +369,8 @@ bool VaapiWrapper::VaInitialize(const base::Closure& report_error_to_uma_cb) {
+     return false;
+   }
+ 
+-  VAStatus va_res = VA_STATUS_SUCCESS;
+-  if (!va_display_state->Initialize(&va_res)) {
+-    VA_LOG_ON_ERROR(va_res, "vaInitialize failed");
++  if (!va_display_state->Initialize())
+     return false;
+-  }
+ 
+   va_display_ = va_display_state->va_display();
+   return true;
+@@ -1218,7 +1215,7 @@ VaapiWrapper::VADisplayState::VADisplayState()
+ 
+ VaapiWrapper::VADisplayState::~VADisplayState() {}
+ 
+-bool VaapiWrapper::VADisplayState::Initialize(VAStatus* status) {
++bool VaapiWrapper::VADisplayState::Initialize() {
+   va_lock_.AssertAcquired();
+   if (refcount_++ == 0) {
+ #if defined(USE_X11)
+@@ -1232,9 +1229,12 @@ bool VaapiWrapper::VADisplayState::Initialize(VAStatus* status) {
+       return false;
+     }
+ 
+-    *status = vaInitialize(va_display_, &major_version_, &minor_version_);
+-    if (*status != VA_STATUS_SUCCESS)
++    VAStatus va_res =
++        vaInitialize(va_display_, &major_version_, &minor_version_);
++    if (va_res != VA_STATUS_SUCCESS) {
++      LOG(WARNING) << "vaInitialize failed: " << vaErrorStr(va_res);
+       return false;
++    }
+ 
+     va_initialized_ = true;
+     DVLOG(1) << "VAAPI version: " << major_version_ << "." << minor_version_;
+Index: content/common/gpu/media/vaapi_wrapper.h
+diff --git a/content/common/gpu/media/vaapi_wrapper.h b/content/common/gpu/media/vaapi_wrapper.h
+index 7f14b49be11647d2ba7d4b5f7e1f089238627007..4394bc36b928ebf12d39b8bbb4a22af738bf8537 100644
+--- a/content/common/gpu/media/vaapi_wrapper.h
++++ b/content/common/gpu/media/vaapi_wrapper.h
+@@ -247,7 +247,7 @@ class CONTENT_EXPORT VaapiWrapper
+     ~VADisplayState();
+ 
+     // |va_lock_| must be held on entry.
+-    bool Initialize(VAStatus* status);
++    bool Initialize();
+     void Deinitialize(VAStatus* status);
+ 
+     base::Lock* va_lock() { return &va_lock_; }
