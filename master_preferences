@@ -1,4 +1,4 @@
-{
+{ 
   "distribution": {
      "skip_first_run_ui": true,
      "import_bookmarks_from_file": "/etc/chromium/default_bookmarks.html",
@@ -25,6 +25,7 @@
   "first_run_tabs": [
      "https://start.fedoraproject.org",
      "http://tools.google.com/chrome/intl/en/welcome.html",
+     "https://unitedrpms.github.io"
   ],
   "homepage": "https://start.fedoraproject.org",
   "homepage_is_newtabpage": false
