@@ -30,8 +30,8 @@
 
 Summary:	A fast webkit-based web browser
 Name:		chromium
-Version:	53.0.2785.101
-Release:	2%{?dist}
+Version:	53.0.2785.113
+Release:	1%{?dist}
 
 Group:		Applications/Internet
 License:	BSD, LGPL
@@ -464,7 +464,7 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
 
 # Hard code extra version
 FILE=chrome/common/channel_info_posix.cc
-sed -i.orig -e 's/getenv("CHROME_VERSION_EXTRA")/"Russian Fedora"/' $FILE
+sed -i.orig -e 's/getenv("CHROME_VERSION_EXTRA")/"UnitedRPMs Project"/' $FILE
 cmp $FILE $FILE.orig && exit 1
 
 %ifarch x86_64
