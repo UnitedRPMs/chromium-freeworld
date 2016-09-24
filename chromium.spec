@@ -30,7 +30,7 @@
 
 Summary:	A fast webkit-based web browser
 Name:		chromium
-Version:	53.0.2785.113
+Version:	53.0.2785.116
 Release:	1%{?dist}
 
 Group:		Applications/Internet
@@ -828,13 +828,17 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_libdir}/%{name}/lib/libmedia.so*
 
 %changelog
+* Sun Sep 18 2016 Pavlo Rudyi <paulcarroty at riseup.net> - 53.0.2785.116-1
+- Update to 53.0.2785.113
+- URPMS rebranding
+- Fix grammar in #841  
 
 * Fri Sep 09 2016 David Vásquez <davidjeremias82 AT gmail DOT com>  53.0.2785.101-2
 - Deleted epoch tag
 
 * Tue Sep 06 2016 David Vásquez <davidjeremias82 AT gmail DOT com>  53.0.2785.101-1
 - Upstream
-- New changes reduces the size of source code to 12MB (thanks, python scripts thanks to Tom Callaway)
+- New changes reduces the size of source code to 12MB (thanks to python scripts from Tom Callaway)
 - Updated to 53.0.2785.101
 
 * Mon Sep  5 2016 Arkady L. Shane <ashejn@russianfedora.pro> 53.0.2785.92-1
