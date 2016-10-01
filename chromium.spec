@@ -30,8 +30,8 @@
 
 Summary:	A fast webkit-based web browser
 Name:		chromium
-Version:	53.0.2785.116
-Release:	1%{?dist}
+Version:	53.0.2785.143
+Release:	2%{?dist}
 
 Group:		Applications/Internet
 License:	BSD, LGPL
@@ -828,6 +828,8 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_libdir}/%{name}/lib/libmedia.so*
 
 %changelog
+* Fri Sep 30 2016 David Vasquez <davidjeremias82 AT gmail DOT com>  53.0.2785.143-2
+- Updated to 53.0.2785.143
 * Sun Sep 18 2016 Pavlo Rudyi <paulcarroty at riseup.net> - 53.0.2785.116-1
 - Update to 53.0.2785.113
 - URPMS rebranding
