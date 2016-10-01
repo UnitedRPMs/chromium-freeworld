@@ -105,7 +105,7 @@ srpmver=$(curl -s https://copr.fedorainfracloud.org/coprs/$user_name/$PROJECT_CH
 
 echo -e "\e[31mDownloading built packages for you... in /tmp\e[0m"
 
-copr-cli download-build build_id /tmp/
+copr-cli download-build $idbuild /tmp/
 exit
 done
 
