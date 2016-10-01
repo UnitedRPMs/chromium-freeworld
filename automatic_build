@@ -109,6 +109,19 @@ copr-cli download-build $idbuild -d /tmp/
 exit
 done
 
+# sort process
+pushd /tmp/
+ls -d fedora* | sed 's:/::g' | tee distro_directories.txt
+
+file=distro_directories.txt
+while IFS= read -r line; do
+pushd /tmp/$line/
+    mv -f *.rpm /tmp/ 
+popd  
+done <"$file"
+
+popd  
+
 echo -e "\e[31mSync process\e[0m"
 pushd /home/URPMS/$rl/
 
