@@ -116,7 +116,7 @@ ls -d fedora* | sed 's:/::g' | tee distro_directories.txt
 file=distro_directories.txt
 while IFS= read -r line; do
 pushd /tmp/$line/
-    mv -f *.rpm /tmp/ 
+    mv -f *$TARGET*.rpm /tmp/ 
 popd  
 done <"$file"
 
@@ -130,4 +130,8 @@ add_packages.sh -a
 wait ${!}
 
 add_packages.sh -b
+
+wait ${!}
+
+rm -rf /tmp/fedora*/
 
