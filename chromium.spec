@@ -1,3 +1,5 @@
+%bcond_without normalsource
+
 %global ffmpeg 0
 %global clang 1
 %global libva 0
@@ -31,12 +33,15 @@
 Summary:	A fast webkit-based web browser
 Name:		chromium
 Version:	53.0.2785.143
-Release:	2%{?dist}
+Release:	3%{?dist}
 
 Group:		Applications/Internet
 License:	BSD, LGPL
 URL:		http://www.chromium.org/
 
+%if %{with normalsource}
+Source1:	https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
+%endif
 # Use chromium-latest.py to generate clean tarball from released build tarballs, found here:
 # http://build.chromium.org/buildbot/official/
 # For Chromium Fedora use chromium-latest.py --stable --ffmpegclean --ffmpegarm
@@ -353,12 +358,15 @@ can include.
 
 %prep
 
+%if %{with normalsource}
+tar xJf %{S:1} -C %{_builddir}
+%else
 if [ ! -f %{_builddir}/chromium-%{version}-clean.tar.xz ]; then 
 python %{_sourcedir}/chromium-latest.py --stable --ffmpegclean --ffmpegarm
 fi
-
 # tar xJf %{_builddir}/chromium-%{version}-clean.tar.xz -C %{_builddir}
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
+%endif
 
 %setup -q -T -c -n depot_tools -a 998
 %setup -q -T -c -n tools -a 997
@@ -828,8 +836,13 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_libdir}/%{name}/lib/libmedia.so*
 
 %changelog
+
+* Thu Oct 27 2016 David Vasquez <davidjeremias82 AT gmail DOT com>  53.0.2785.143-3
+- Auto Source conditional
+
 * Fri Sep 30 2016 David Vasquez <davidjeremias82 AT gmail DOT com>  53.0.2785.143-2
 - Updated to 53.0.2785.143
+
 * Sun Sep 18 2016 Pavlo Rudyi <paulcarroty at riseup.net> - 53.0.2785.116-1
 - Update to 53.0.2785.113
 - URPMS rebranding
