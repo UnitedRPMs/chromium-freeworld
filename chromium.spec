@@ -1,4 +1,7 @@
-%bcond_without normalsource
+%bcond_with normalsource
+
+%bcond_without specific_source
+
 
 %global ffmpeg 0
 %global clang 1
@@ -288,6 +291,9 @@ BuildRequires:	systemd
 # for /usr/bin/appstream-util
 BuildRequires:	libappstream-glib
 
+# dowload source
+BuildRequires:	wget
+
 Requires:	hicolor-icon-theme
 # Missing libva in AutoRequires
 Requires:	libva
@@ -361,9 +367,13 @@ can include.
 %if %{with normalsource}
 tar xJf %{S:1} -C %{_builddir}
 %else
+%if %{with specific_source}
+wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
+%else
 if [ ! -f %{_builddir}/chromium-%{version}-clean.tar.xz ]; then 
 python %{_sourcedir}/chromium-latest.py --stable --ffmpegclean --ffmpegarm
 fi
+%endif
 # tar xJf %{_builddir}/chromium-%{version}-clean.tar.xz -C %{_builddir}
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %endif
