@@ -1,5 +1,6 @@
 mock_travis:
-mock_config: fedora-24-x86_64
+mock_config: fedora-25-x86_64
+packages_buildrequires_git: UnitedRPMs/chromium-freeworld
 packages_extra_repo: https://sourceforge.net/projects/unitedrpms/files/25/x86_64/
 
 sudo: required
