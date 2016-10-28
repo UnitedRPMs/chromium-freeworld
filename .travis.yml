@@ -14,3 +14,6 @@ script:
   - wget -q https://github.com/paulcarroty/mock-travis/releases/download/latest/mock-travis 
         && chmod +x mock-travis 
         && ./mock-travis
+
+notifications:
+  slack: unitedrpms:lzDykHTpajKrgmGz9NkrO1Hj
