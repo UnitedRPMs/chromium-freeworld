@@ -66,8 +66,8 @@ Source32:	chromium.default
 Source33:	chrome-remote-desktop.service
 Source34:	chromium-browser.appdata.xml
 
-Source997:	depot_tools.tar.xz
-Source998:	gn-binaries.tar.xz
+Source997:	https://github.com/UnitedRPMs/chromium-freeworld/raw/master/depot_tools.tar.xz
+Source998:	https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binaries.tar.xz
 
 Conflicts:	chromium-testing
 Conflicts:	chromium-unstable
