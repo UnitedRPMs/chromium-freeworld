@@ -52,19 +52,19 @@ Source1:	https://commondatastorage.googleapis.com/chromium-browser-official/chro
 # https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%%{version}.tar.xz
 
 # Also, only used if you want to reproduce the clean tarball.
-Source5:	clean_ffmpeg.sh
-Source6:	chromium-latest.py
-Source7:	get_free_ffmpeg_source_files.py
+Source5: https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/clean_ffmpeg.sh
+Source6:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-latest.py
+Source7:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/get_free_ffmpeg_source_files.py
 # Get the names of all tests (gtests) for Linux
 # Usage: get_linux_tests_name.py chromium-%%{version} --spec
-Source8:	get_linux_tests_names.py
+Source8:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/get_linux_tests_names.py
 
-Source10:	chromium-wrapper
-Source20:	chromium-browser.desktop
-Source30:	master_preferences
-Source32:	chromium.default
-Source33:	chrome-remote-desktop.service
-Source34:	chromium-browser.appdata.xml
+Source10:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-wrapper
+Source20:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-browser.desktop
+Source30:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/master_preferences
+Source32:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium.default
+Source33:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chrome-remote-desktop.service
+Source34:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-browser.appdata.xml
 
 Source997:	https://github.com/UnitedRPMs/chromium-freeworld/raw/master/depot_tools.tar.xz
 Source998:	https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binaries.tar.xz
@@ -72,40 +72,40 @@ Source998:	https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binari
 Conflicts:	chromium-testing
 Conflicts:	chromium-unstable
 
-Patch0:		chromium-30.0.1599.66-master-prefs-path.patch
+Patch0:		https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-30.0.1599.66-master-prefs-path.patch
 
 # PATCH-FIX-UPSTREAM Add more charset aliases
-Patch6:		chromium-more-codec-aliases.patch
+Patch6:		https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-more-codec-aliases.patch
 # PATCH-FIX-OPENSUSE Compile the sandbox with -fPIE settings
-Patch15:	chromium-25.0.1364.172-sandbox-pie.patch
+Patch15:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-25.0.1364.172-sandbox-pie.patch
 
 # archlinux arm enhancement patches
-Patch100:	arm-webrtc-fix.patch
-Patch101:	chromium-arm-r0.patch
+Patch100:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/arm-webrtc-fix.patch
+Patch101:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-arm-r0.patch
 
 # fix https://bugs.chromium.org/p/chromium/issues/detail?id=548254
 # build on EL7
-Patch198:	issue1637423004_100001.diff
+Patch198:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/issue1637423004_100001.diff
 # fix https://bugs.chromium.org/p/chromium/issues/detail?id=585513
 # vaInitialize failed VA error: unknown libva error
-Patch199:	issue1688073002_40001.diff
+Patch199:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/issue1688073002_40001.diff
 # http://bazaar.launchpad.net/~saiarcot895/chromium-browser/chromium-browser.trusty.beta/revision/230#debian/patches/enable_vaapi_on_linux.diff
-Patch200:	enable_vaapi_on_linux.diff
+Patch200:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/enable_vaapi_on_linux.diff
 # Google patched their bundled copy of icu 54 to include API functionality that wasn't added until 55.
 # :P
-Patch201:	chromium-45.0.2454.101-system-icu-56-does-not-have-detectHostTimeZone.patch
+Patch201:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-45.0.2454.101-system-icu-56-does-not-have-detectHostTimeZone.patch
 # (cjw) fix build problem with system libvpx due to usage of private header file
 # mageia patch
-Patch202:	chromium-46-svc_context.patch
+Patch202:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-46-svc_context.patch
 # fix build with icu other than 54
-Patch204:	chromium-system-icu-r0.patch
+Patch204:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-system-icu-r0.patch
 # (cjw) Don't disable deprecated APIs in ffmpeg header files, some of which change the ABI.
 #	From Gentoo: http://mirror.yandex.ru/gentoo-portage/www-client/chromium/files/chromium-system-ffmpeg-r2.patch
-Patch205:	chromium-system-ffmpeg-r3.patch
+Patch205:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-system-ffmpeg-r3.patch
 # (cjw) fix webrtc build with system ffmpeg
-Patch206:	chromium-51-system-ffmpeg-3.patch
+Patch206:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-51-system-ffmpeg-3.patch
 
-Patch208:	chromium-52.0.2743.82-cups22.patch
+Patch208:	https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-52.0.2743.82-cups22.patch
 
 BuildRequires:  tar
 BuildRequires:  SDL-devel
@@ -370,7 +370,7 @@ tar xJf %{S:1} -C %{_builddir}
 %if %{with specific_source}
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 %else
-if [ ! -f %{_builddir}/chromium-%{version}-clean.tar.xz ]; then 
+if [ ! -f %{_builddir}/chromium-%{version}-clean.tar.xz ]; then
 python %{_sourcedir}/chromium-latest.py --stable --ffmpegclean --ffmpegarm
 fi
 %endif
@@ -494,7 +494,7 @@ sed -i "s#/lib64/#/lib/#g" %{SOURCE20}
 %endif
 
 %build
-cd %{_builddir}/chromium-%{version}/ 
+cd %{_builddir}/chromium-%{version}/
 # https://groups.google.com/a/chromium.org/forum/#!topic/chromium-packagers/9JX1N2nf4PU
 touch chrome/test/data/webui/i18n_process_css_test.html
 touch chrome/test/data/webui_test_resources.grd
@@ -517,7 +517,7 @@ buildconfig+="-Dwerror=
 		-Duse_aura=1
 		-Denable_hidpi=1
 		-Denable_touch_ui=1
-		-Denable_pepper_cdms=1 
+		-Denable_pepper_cdms=1
 		-Denable_webrtc=1
 		-Drtc_use_h264=1
 		-Duse_gnome_keyring=1
@@ -633,7 +633,7 @@ buildconfig+=" -Duse_pulseaudio=1
 %if 0%{?clang}
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
-# Modern Clang produces a *lot* of warnings 
+# Modern Clang produces a *lot* of warnings
 export CXXFLAGS="${CXXFLAGS} -Wno-unknown-warning-option -Wno-unused-local-typedef -Wunknown-attributes -Wno-tautological-undefined-compare"
 export GYP_DEFINES="clang=1"
 %endif
@@ -856,7 +856,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 * Sun Sep 18 2016 Pavlo Rudyi <paulcarroty at riseup.net> - 53.0.2785.116-1
 - Update to 53.0.2785.113
 - URPMS rebranding
-- Fix grammar in #841  
+- Fix grammar in #841
 
 * Fri Sep 09 2016 David Vásquez <davidjeremias82 AT gmail DOT com>  53.0.2785.101-2
 - Deleted epoch tag
@@ -1833,4 +1833,3 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 * Thu Feb 10 2011 Claudio Matsuoka <claudio@mandriva.com> 9.0.597.94-1
 + Revision: 637082
 - imported package chromium-browser-stable
-
