@@ -4,7 +4,7 @@
  
 Summary:	A fast webkit-based web browser
  
-Version:	53.0.2785.101
+Version:	54.0.2840.100
  
 License:	BSD, LGPL
  

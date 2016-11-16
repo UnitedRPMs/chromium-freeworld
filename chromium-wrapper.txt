@@ -6,7 +6,7 @@
 #  Fabien Tassin <fta@sofaraway.org>
 # License: GPLv2 or later
 
-APPNAME=chrome
+APPNAME=chromium
 LIBDIR=@LIBDIR@/chromium
 GDB=/usr/bin/gdb
 
@@ -24,6 +24,9 @@ else
   LD_LIBRARY_PATH=$LIBDIR
 fi
 export LD_LIBRARY_PATH
+
+# Set CHROME_VERSION_EXTRA visible in the About dialog and in about:version
+export CHROME_VERSION_EXTRA="Built from source for @@BUILDTARGET@@"
 
 # xdg-settings should in PATH
 PATH=$PATH:$LIBDIR
@@ -73,7 +76,7 @@ if [ ! -d ~/.config/chromium/Default ]; then
          "use_system": true
       }
    },
-   "homepage": "http://www.opensuse.org/",
+   "homepage": "https://unitedrpms.github.io/",
    "homepage_is_newtabpage": false,
    "session": {
       "restore_on_startup": 1

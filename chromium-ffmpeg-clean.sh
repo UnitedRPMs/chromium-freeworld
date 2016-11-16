@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2013-2015 Tomas Popela <tpopela@redhat.com>
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -18,6 +18,16 @@
 # CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+# This file is obtained from official Chromium packages distributed by Fedora:
+# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=8a15fdf
+#
+# This script has been and modified by Ting-Wei Lan <lantw44@gmail.com> for
+# using in lantw44/chromium Copr repository.
+#
+# List of changes:
+#  * Rename: clean_ffmpeg.sh -> chromium-ffmpeg-clean.sh.
+#  * The shebang line no longer hardcodes the path to bash.
 
 # $1 files
 # $2 verbose
@@ -42,7 +52,7 @@ function copy_files() {
 
 where=`pwd`
 
-generated_files=`./get_free_ffmpeg_source_files.py $1 $2`
+generated_files=`./chromium-ffmpeg-free-sources.py $1 $2`
 # As the build system files does not contain the header files, cheat here
 # and generate the header files names from source files. These that does not
 # exist will be later skipped while copying.
