@@ -59,35 +59,35 @@ Vendor:     URPMS
 %if %{with normalsource}
 Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 %endif
-Source1:    chromium-latest.py
-Source2:    chromium-ffmpeg-clean.sh
-Source3:    chromium-ffmpeg-free-sources.py
-Source33:   chrome-remote-desktop.service
-Source997:  depot_tools.tar.xz
-Source998:  gn-binaries.tar.xz
+Source1:    https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-latest.py
+Source2:    https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-ffmpeg-clean.sh
+Source3:    https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-ffmpeg-free-sources.py
+Source33:   https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chrome-remote-desktop.service
+Source997:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/depot_tools.tar.xz
+Source998:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binaries.tar.xz
 
 # The following two source files are copied and modified from
 # https://repos.fedorapeople.org/repos/spot/chromium/
-Source10:   chromium-wrapper.txt
-Source11:   chromium.desktop
+Source10:   https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-wrapper.txt
+Source11:   https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium.desktop
 
 # The following two source files are copied verbatim from
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/tree/
-Source12:   chromium.xml
-Source13:   chromium.appdata.xml
+Source12:   https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium.xml
+Source13:   https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium.appdata.xml
 
 # Add a patch from Fedora to fix crash
 # https://bugzilla.redhat.com/show_bug.cgi?id=1361157
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ed93147
-Patch0:     chromium-unset-madv_free.patch
+Patch0:     https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-unset-madv_free.patch
 
 # Add a patch from Fedora to fix GN build
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
-Patch1:     chromium-last-commit-position.patch
+Patch1:     https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-last-commit-position.patch
 
 # Add a patch from upstream to fix undefined reference error
 # https://codereview.chromium.org/2291783002
-Patch2:     chromium-fix-undefined-reference.patch
+Patch2:     https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-fix-undefined-reference.patch
 
 # Building with GCC 6 requires -fno-delete-null-pointer-checks to avoid crashes
 # Unfortunately, it is not possible to add additional compiler flags with
@@ -99,7 +99,7 @@ Patch2:     chromium-fix-undefined-reference.patch
 # https://anonscm.debian.org/cgit/pkg-chromium/pkg-chromium.git/commit/?id=dfd37f3
 # https://bugs.chromium.org/p/v8/issues/detail?id=3782
 # https://codereview.chromium.org/2310513002
-Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
+Patch3:     https://raw.githubusercontent.com/UnitedRPMs/chromium-freeworld/master/chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
