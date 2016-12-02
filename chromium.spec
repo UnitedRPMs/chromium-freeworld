@@ -507,7 +507,7 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build %{_smp_mflags} -j$jobs -C out/Release third_party/ffmpeg chrome \ 
+ninja-build -j$jobs -C out/Release third_party/ffmpeg chrome \ 
 %if %{with _sandbox}
 chrome_sandbox \
 %endif
@@ -520,7 +520,7 @@ remoting_all \
 %endif 
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -j$jobs -C out/Release third_party/ffmpeg chrome \ 
+ninja-build -j$jobs -C out/Release third_party/ffmpeg chrome \ 
 %if %{with _sandbox}
 chrome_sandbox \
 %endif
