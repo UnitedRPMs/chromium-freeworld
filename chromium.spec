@@ -52,7 +52,7 @@
 %bcond_without require_clang
 
 Name:       chromium
-Version:    54.0.2840.100
+Version:    55.0.2883.75
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -508,23 +508,26 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 %if %{with devel_tools}
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome chrome_sandbox chromedriver -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome chrome_sandbox chromedriver -j$jobs
 %endif
 %else
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release chrome widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome widevinecdmadapter -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome -j$jobs
 %endif
  %endif
 
 # ffmpeg 
 ninja-build -C out/Release third_party/ffmpeg -j$jobs
+
+# widevine
+ninja-build -C out/Release widevinecdmadapter -j$jobs
 
 %if %{with remote_desktop}
 ninja-build -C out/Release remoting_all -j$jobs
@@ -725,6 +728,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Fri Dec 02 2016 - David Vasquez <davidjeremias82 AT gmail DOT com>  55.0.2883.75-2
+- Updated to 55.0.2883.75
 
 * Thu Dec 01 2016 - David Vasquez <davidjeremias82 AT gmail DOT com>  54.0.2840.100-3
 - Conditional task
