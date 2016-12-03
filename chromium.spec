@@ -12,6 +12,8 @@
 
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_with devel_tools
+# Chromium users doesn't need chrome-remote-desktop
+%bcond_with remote_desktop
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
@@ -65,7 +67,9 @@ Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/c
 Source1:    chromium-latest.py
 Source2:    chromium-ffmpeg-clean.sh
 Source3:    chromium-ffmpeg-free-sources.py
+%if %{with remote_desktop}
 Source33:   chrome-remote-desktop.service
+%endif
 Source997:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/depot_tools.tar.xz
 Source998:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binaries.tar.xz
 
@@ -196,6 +200,7 @@ Provides: %{name}-libs%{_isa} = %{version}-%{release}
 %description libs
 Shared libraries used by chromium (and chrome-remote-desktop).
 
+%if %{with devel_tools}
 %package -n chromedriver
 Summary: WebDriver for Google Chrome/Chromium
 Group: Development/Libraries
@@ -208,6 +213,7 @@ browsers. It provides capabilities for navigating to web pages, user input,
 JavaScript execution, and more. ChromeDriver is a standalone server which
 implements WebDriver's wire protocol for Chromium. It is being developed by
 members of the Chromium and WebDriver teams.
+%endif
 
 %package libs-media-freeworld
 Summary: Chromium media libraries built with all possible codecs
@@ -219,6 +225,7 @@ open-source web browser, powered by WebKit (Blink). This package replaces
 the default chromium-libs-media package, which is limited in what it
 can include.
 
+%if %{with remote_desktop}
 %package -n chrome-remote-desktop
 Summary: Remote desktop support for google-chrome & chromium
 Requires(pre): shadow-utils
@@ -231,7 +238,7 @@ Requires: %{name}-libs%{_isa} = %{version}-%{release}
 
 %description -n chrome-remote-desktop
 Remote desktop support for google-chrome & chromium.
-
+%endif
 
 %prep
 %if %{with normalsource}
@@ -255,8 +262,10 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
 
+%if %{with remote_desktop}
 # Fix hardcoded path in remoting code
 sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/daemon_controller_delegate_linux.cc
+%endif
 
 
 ### build with widevine support
@@ -499,21 +508,24 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 %if %{with devel_tools}
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release third_party/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter remoting_all -j$jobs
+ninja-build -C out/Release third_party/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release third_party/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter remoting_all -j$jobs
+ninja-build %{_smp_mflags} -C out/Release third_party/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %endif
 %else
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release third_party/ffmpeg chrome widevinecdmadapter remoting_all -j$jobs
+ninja-build -C out/Release third_party/ffmpeg chrome widevinecdmadapter -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release third_party/ffmpeg chrome widevinecdmadapter remoting_all -j$jobs
+ninja-build %{_smp_mflags} -C out/Release third_party/ffmpeg chrome widevinecdmadapter -j$jobs
 %endif
  %endif
 
+%if %{with remote_desktop}
+ninja-build -C out/Release remoting_all -j$jobs
+%endif
 
 %install
 
@@ -567,6 +579,7 @@ done
 
 mkdir -p %{buildroot}/%{chromiumdir}/PepperFlash
 
+%if %{with remote_desktop}
 # Remote desktop bits
 mkdir -p %{buildroot}%{crd_path}
 
@@ -607,7 +620,7 @@ cp -a remoting/host/installer/linux/is-remoting-session %{buildroot}%{crd_path}/
 mkdir -p %{buildroot}%{_unitdir}
 cp -a %{SOURCE33} %{buildroot}%{_unitdir}/
 sed -i 's|@@CRD_PATH@@|%{crd_path}|g' %{buildroot}%{_unitdir}/chrome-remote-desktop.service
-
+%endif
 
 %post
 touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
@@ -623,6 +636,7 @@ update-desktop-database &> /dev/null || :
 %posttrans
 gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
+%if %{with remote_desktop}
 %pre -n chrome-remote-desktop
 getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-desktop
 
@@ -634,7 +648,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %postun -n chrome-remote-desktop
 %systemd_postun_with_restart chrome-remote-desktop.service
-
+%endif
 
 %files
 %license LICENSE
@@ -690,6 +704,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/libffmpeg.so*
 # {chromiumdir}/libmedia.so*
 
+%if %{with remote_desktop}
 %files -n chrome-remote-desktop
 %{crd_path}/chrome-remote-desktop
 %{crd_path}/chrome-remote-desktop-host
@@ -704,7 +719,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{crd_path}/start-host
 %{_unitdir}/chrome-remote-desktop.service
 /var/lib/chrome-remote-desktop/
-
+%endif
 
 %changelog
 
