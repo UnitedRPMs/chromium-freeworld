@@ -316,7 +316,6 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
     third_party/cld_2 \
     third_party/cld_3 \
     third_party/cros_system_api \
-    third_party/cython/python_flags.py \
     third_party/devscripts \
     third_party/dom_distiller_js \
     third_party/ffmpeg \
