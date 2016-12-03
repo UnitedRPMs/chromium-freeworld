@@ -508,20 +508,23 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 %if %{with devel_tools}
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release third_party/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release third_party/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %endif
 %else
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release third_party/ffmpeg chrome widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome widevinecdmadapter -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release third_party/ffmpeg chrome widevinecdmadapter -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome widevinecdmadapter -j$jobs
 %endif
  %endif
+
+# ffmpeg 
+ninja-build -C out/Release third_party/ffmpeg -j$jobs
 
 %if %{with remote_desktop}
 ninja-build -C out/Release remoting_all -j$jobs
