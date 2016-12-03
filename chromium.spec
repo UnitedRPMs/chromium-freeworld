@@ -92,9 +92,9 @@ Patch0:     chromium-unset-madv_free.patch
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
 Patch1:     chromium-last-commit-position.patch
 
-# Add a patch from upstream to fix undefined reference error
+# Add a patch from upstream to fix undefined reference error (solved)
 # https://codereview.chromium.org/2291783002
-Patch2:     chromium-fix-undefined-reference.patch
+# Patch2:     chromium-fix-undefined-reference.patch
 
 # Building with GCC 6 requires -fno-delete-null-pointer-checks to avoid crashes
 # Unfortunately, it is not possible to add additional compiler flags with
@@ -255,7 +255,7 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %setup -T -D chromium-%{version}
 %patch0 -p1
 %patch1 -p1
-%patch2 -p1
+# patch2 -p1
 %patch3 -p1
 %endif
 
