@@ -481,7 +481,7 @@ is_clang=true
 %ifarch x86_64
     'system_libdir="lib64"'
 %endif
-    'is_component_ffmpeg=true' 
+    'is_component_ffmpeg=false' 
 %ifarch %{arm}
     "target_cpu=\"arm\""
     "target_sysroot_dir=\"\""
