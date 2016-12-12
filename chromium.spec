@@ -1,19 +1,20 @@
-# This spec file is based on other spec files (for compatiblity) and PKGBUILDs and EBUILDs available from
+# This spec file is based on other spec files (for compatiblity) PKGBUILDs and EBUILDs available from
 #  [1] https://www.archlinux.org/packages/extra/x86_64/chromium/
 #  [2] https://packages.gentoo.org/packages/www-client/chromium
-#  [3] https://github.com/RussianFedora/chromium
-#  [4] https://pkgs.fedoraproject.org/cgit/rpms/chromium.git
+#  [3] https://build.opensuse.org/package/show/openSUSE:Factory/chromium
+#  [4] https://pkgs.fedoraproject.org/cgit/rpms/chromium.git (A kick in the ass!)
 #  [5] http://copr-dist-git.fedorainfracloud.org/cgit/lantw44/chromium/chromium.git
 
 
 %global __requires_exclude ^libffmpeg\\.so.*$
+%global __requires_exclude ^libmedia\\.so.*$
 %global chromiumdir %{_libdir}/chromium
 %global crd_path %{_libdir}/chrome-remote-desktop
 
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
-%bcond_with devel_tools
+%bcond_without devel_tools
 # Chromium users doesn't need chrome-remote-desktop
-%bcond_with remote_desktop
+%bcond_without remote_desktop
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
@@ -175,6 +176,7 @@ BuildRequires: systemd
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
+Requires: re2
 
 
 %description
@@ -217,6 +219,7 @@ members of the Chromium and WebDriver teams.
 
 %package libs-media-freeworld
 Summary: Chromium media libraries built with all possible codecs
+Provides: chromium-libs-media = %{version}-%{release}
 Provides: chromium-libs-media%{_isa} = %{version}-%{release}
 
 %description libs-media-freeworld
@@ -481,7 +484,7 @@ is_clang=true
 %ifarch x86_64
     'system_libdir="lib64"'
 %endif
-    'is_component_ffmpeg=false' 
+    'is_component_ffmpeg=true' 
 %ifarch %{arm}
     "target_cpu=\"arm\""
     "target_sysroot_dir=\"\""
@@ -668,9 +671,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_mandir}/man1/chromium.1.gz
 %dir %{chromiumdir}
 %{chromiumdir}/chromium
-%{chromiumdir}/chrome-sandbox
 %if %{with devel_tools}
 %{chromiumdir}/chromedriver
+%{chromiumdir}/chrome-sandbox
 %endif
 %{chromiumdir}/icudtl.dat
 %if %{with _nacl}
