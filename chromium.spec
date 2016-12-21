@@ -6,10 +6,11 @@
 #  [5] http://copr-dist-git.fedorainfracloud.org/cgit/lantw44/chromium/chromium.git
 
 
-%global __requires_exclude ^libffmpeg\\.so.*$
-%global __requires_exclude ^libmedia\\.so.*$
 %global chromiumdir %{_libdir}/chromium
 %global crd_path %{_libdir}/chrome-remote-desktop
+# Do not check any ffmpeg or libmedia bundle files in libdir for requires
+%global __requires_exclude_from ^%{_libdir}/libffmpeg.*$
+%global __requires_exclude_from ^%{_libdir}/libmedia.*$
 
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_without devel_tools
@@ -33,6 +34,7 @@
 %bcond_with system_libvpx
 %endif
 
+# Use clang compiler (downloaded binaries from google). Results in faster build and smaller chromium.
 %if 0
 %bcond_without clang
 %else
@@ -53,7 +55,7 @@
 %bcond_without require_clang
 
 Name:       chromium
-Version:    55.0.2883.75
+Version:    55.0.2883.87
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -173,10 +175,15 @@ BuildRequires: libappstream-glib
 # remote desktop needs this
 BuildRequires: pam-devel
 BuildRequires: systemd
+# CLANG
+%if 0%{?clang}
+BuildRequires: clang
+%endif
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
 Requires: re2
+
 
 
 %description
@@ -221,6 +228,7 @@ members of the Chromium and WebDriver teams.
 Summary: Chromium media libraries built with all possible codecs
 Provides: chromium-libs-media = %{version}-%{release}
 Provides: chromium-libs-media%{_isa} = %{version}-%{release}
+
 
 %description libs-media-freeworld
 Chromium media libraries built with all possible codecs. Chromium is an
@@ -724,6 +732,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Sun Dec 18 2016 - David Vasquez <davidjeremias82 AT gmail DOT com>  55.0.2883.87-2
+- Updated to 55.0.2883.87
 
 * Fri Dec 02 2016 - David Vasquez <davidjeremias82 AT gmail DOT com>  55.0.2883.75-2
 - Updated to 55.0.2883.75
