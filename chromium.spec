@@ -9,8 +9,8 @@
 %global chromiumdir %{_libdir}/chromium
 %global crd_path %{_libdir}/chrome-remote-desktop
 # Do not check any ffmpeg or libmedia bundle files in libdir for requires
-%global __requires_exclude_from ^%{_libdir}/libffmpeg.*$
-%global __requires_exclude_from ^%{_libdir}/libmedia.*$
+%global __requires_exclude_from ^%{chromiumdir}/libffmpeg.*$
+%global __requires_exclude_from ^%{chromiumdir}/libmedia.*$
 
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_without devel_tools
