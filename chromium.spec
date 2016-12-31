@@ -79,7 +79,7 @@ Source998:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binar
 # The following two source files are copied and modified from
 # https://repos.fedorapeople.org/repos/spot/chromium/
 Source10:   chromium-wrapper.txt
-Source11:   chromium.desktop
+Source11:   chromium-freeworld.desktop
 
 # The following two source files are copied verbatim from
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/tree/
@@ -183,7 +183,7 @@ Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
 Requires: re2
-
+Provides: %{name}-freeworld = %{version}-%{release}
 
 
 %description
@@ -228,6 +228,7 @@ members of the Chromium and WebDriver teams.
 Summary: Chromium media libraries built with all possible codecs
 Provides: chromium-libs-media = %{version}-%{release}
 Provides: chromium-libs-media%{_isa} = %{version}-%{release}
+Provides: libffmpeg.so()(64bit)
 
 
 %description libs-media-freeworld
@@ -665,7 +666,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %doc AUTHORS
 %{_bindir}/chromium
 %{_datadir}/appdata/chromium.appdata.xml
-%{_datadir}/applications/chromium.desktop
+%{_datadir}/applications/chromium-freeworld.desktop
 %{_datadir}/gnome-control-center/default-apps/chromium.xml
 %{_datadir}/icons/hicolor/16x16/apps/chromium.png
 %{_datadir}/icons/hicolor/22x22/apps/chromium.png
