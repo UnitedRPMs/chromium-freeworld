@@ -183,6 +183,7 @@ Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
 Requires: re2
+Requires: chromium-widevine
 Provides: %{name}-freeworld = %{version}-%{release}
 
 
