@@ -54,8 +54,8 @@
 # Allow disabling unconditional build dependency on clang
 %bcond_without require_clang
 
-Name:       chromium
-Version:    55.0.2883.87
+Name:       chromium-freeworld
+Version:    56.0.2924.76
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -84,7 +84,7 @@ Source11:   chromium-freeworld.desktop
 # The following two source files are copied verbatim from
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/tree/
 Source12:   chromium.xml
-Source13:   chromium.appdata.xml
+Source13:   chromium-freeworld.appdata.xml
 
 # Add a patch from Fedora to fix crash
 # https://bugzilla.redhat.com/show_bug.cgi?id=1361157
@@ -110,6 +110,8 @@ Patch1:     chromium-last-commit-position.patch
 # https://bugs.chromium.org/p/v8/issues/detail?id=3782
 # https://codereview.chromium.org/2310513002
 Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
+Patch4:     chromium-glibc-2.24.patch
+Patch5:     chromium-freeworld/chromium-56-gcc4.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -179,13 +181,16 @@ BuildRequires: systemd
 %if 0%{?clang}
 BuildRequires: clang
 %endif
+# GTK3
+BuildRequires: pkgconfig(gtk+-3.0) 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
 Requires: re2
-Requires: chromium-widevine
-Provides: %{name}-freeworld = %{version}-%{release}
-
+Requires: %{name}-libs = %{version}-%{release}
+Obsoletes: chromium >= 54
+Recommends: chromium-pepper-flash
+Recommends: chromium-widevine
 
 %description
 Chromium is a browser that combines a minimal design with sophisticated
@@ -204,20 +209,18 @@ your profile before changing channels.
 
 %package libs
 Summary: Shared libraries used by chromium (and chrome-remote-desktop)
-Requires: chromium-libs-media-freeworld%{_isa} = %{version}-%{release}
+Requires: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: %{name}-libs%{_isa} = %{version}-%{release}
 
 %description libs
 Shared libraries used by chromium (and chrome-remote-desktop).
 
 %if %{with devel_tools}
-%package -n chromedriver
+%package chromedriver
 Summary: WebDriver for Google Chrome/Chromium
 Group: Development/Libraries
-Conflicts: chromedriver-testing
-Conflicts: chromedriver-unstable
 
-%description -n chromedriver
+%description chromedriver
 WebDriver is an open source tool for automated testing of webapps across many
 browsers. It provides capabilities for navigating to web pages, user input,
 JavaScript execution, and more. ChromeDriver is a standalone server which
@@ -225,14 +228,12 @@ implements WebDriver's wire protocol for Chromium. It is being developed by
 members of the Chromium and WebDriver teams.
 %endif
 
-%package libs-media-freeworld
+%package libs-media
 Summary: Chromium media libraries built with all possible codecs
-Provides: chromium-libs-media = %{version}-%{release}
-Provides: chromium-libs-media%{_isa} = %{version}-%{release}
+Provides: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: libffmpeg.so()(64bit)
 
-
-%description libs-media-freeworld
+%description libs-media
 Chromium media libraries built with all possible codecs. Chromium is an
 open-source web browser, powered by WebKit (Blink). This package replaces
 the default chromium-libs-media package, which is limited in what it
@@ -255,14 +256,10 @@ Remote desktop support for google-chrome & chromium.
 
 %prep
 %if %{with normalsource}
-%autosetup -p1
+%autosetup -n chromium-%{version} -p1
 %else
 %if %{with specific_source}
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
-%else
-if [ ! -f %{_builddir}/chromium-%{version}-clean.tar.xz ]; then 
-python %{_sourcedir}/chromium-latest.py --stable --ffmpegclean --ffmpegarm
-fi
 %endif
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %setup -T -D chromium-%{version}
@@ -270,6 +267,8 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %patch1 -p1
 # patch2 -p1
 %patch3 -p1
+%patch4 -p1
+%patch5 -p1
 %endif
 
 tar xJf %{S:998} -C %{_builddir}
@@ -402,6 +401,8 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
     third_party/WebKit \
     third_party/webrtc \
     third_party/widevine \
+    third_party/inspector_protocol \
+    v8/third_party/inspector_protocol \
     third_party/woff2 \
     third_party/x86inc \
     third_party/xdg-utils \
@@ -528,10 +529,10 @@ ninja-build %{_smp_mflags} -C out/Release chrome third_party/ffmpeg widevinecdma
 %else
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release chrome third_party/ffmpeg widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome widevinecdmadapter -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome third_party/ffmpeg widevinecdmadapter -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome widevinecdmadapter -j$jobs
 %endif
  %endif
 
@@ -549,18 +550,18 @@ mkdir -p %{buildroot}%{_datadir}/applications
 mkdir -p %{buildroot}%{_datadir}/gnome-control-center/default-apps
 sed -e "s|@LIBDIR@|%{_libdir}|" -e "s|@@BUILDTARGET@@|`cat /etc/redhat-release`|" \
     %{SOURCE10} > chromium-wrapper
-install -m 755 chromium-wrapper %{buildroot}%{_bindir}/chromium
+install -m 755 chromium-wrapper %{buildroot}%{_bindir}/%{name}
 desktop-file-install --dir=%{buildroot}%{_datadir}/applications %{SOURCE11}
 install -m 644 %{SOURCE12} %{buildroot}%{_datadir}/gnome-control-center/default-apps/
 appstream-util validate-relax --nonet %{SOURCE13}
 install -m 644 %{SOURCE13} %{buildroot}%{_datadir}/appdata/
-install -m 644 out/Release/chrome.1 %{buildroot}%{_mandir}/man1/chromium.1
+install -m 644 out/Release/chrome.1 %{buildroot}%{_mandir}/man1/%{name}.1
 install -m 755 out/Release/chrome %{buildroot}%{chromiumdir}/chromium
 
 %if %{with devel_tools}
 install -m 4755 out/Release/chrome_sandbox %{buildroot}%{chromiumdir}/chrome-sandbox
 install -m 755 out/Release/chromedriver %{buildroot}%{chromiumdir}/
-ln -s %{chromiumdir}/chromedriver %{buildroot}%{_bindir}/chromedriver
+ln -s %{chromiumdir}/chromedriver %{buildroot}%{_bindir}/%{name}-chromedriver
 %endif
 
 %if !%{with system_libicu}
@@ -596,26 +597,26 @@ mkdir -p %{buildroot}/%{chromiumdir}/PepperFlash
 mkdir -p %{buildroot}%{crd_path}
 
 pushd %{buildroot}%{crd_path}
-ln -s %{_libdir}/%{name}/lib lib
+ln -s %{_libdir}/%{name} lib
 popd
 
 # See remoting/host/installer/linux/Makefile for logic
-cp -a out/Release/native_messaging_host %{buildroot}%{crd_path}/native-messaging-host
+cp -a out/Release/remoting_native_messaging_host %{buildroot}%{crd_path}/remoting_native_messaging_host
 cp -a out/Release/remote_assistance_host %{buildroot}%{crd_path}/remote-assistance-host
 cp -a out/Release/remoting_locales %{buildroot}%{crd_path}/
 cp -a out/Release/remoting_me2me_host %{buildroot}%{crd_path}/chrome-remote-desktop-host
 cp -a out/Release/remoting_start_host %{buildroot}%{crd_path}/start-host
 
 # chromium
-mkdir -p %{buildroot}%{_sysconfdir}/chromium/native-messaging-hosts
+mkdir -p %{buildroot}%{_sysconfdir}/chromium/remoting_native_messaging_host
 # google-chrome
 mkdir -p %{buildroot}%{_sysconfdir}/opt/chrome/
-cp -a out/Release/remoting/* %{buildroot}%{_sysconfdir}/chromium/native-messaging-hosts/
-for i in %{buildroot}%{_sysconfdir}/chromium/native-messaging-hosts/*.json; do
+cp -a out/Release/remoting/* %{buildroot}%{_sysconfdir}/chromium/remoting_native_messaging_host/
+for i in %{buildroot}%{_sysconfdir}/chromium/remoting_native_messaging_host/*.json; do
     sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' $i
 done
 pushd %{buildroot}%{_sysconfdir}/opt/chrome/
-ln -s ../../chromium/native-messaging-hosts native-messaging-hosts
+ln -s ../../chromium/remoting_native_messaging_host remoting_native_messaging_host
 popd
 
 mkdir -p %{buildroot}/var/lib/chrome-remote-desktop
@@ -666,7 +667,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %license LICENSE
 %doc AUTHORS
 %{_bindir}/chromium
-%{_datadir}/appdata/chromium.appdata.xml
+%{_datadir}/appdata/chromium-freeworld.appdata.xml
 %{_datadir}/applications/chromium-freeworld.desktop
 %{_datadir}/gnome-control-center/default-apps/chromium.xml
 %{_datadir}/icons/hicolor/16x16/apps/chromium.png
@@ -705,14 +706,14 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %exclude %{chromiumdir}/libffmpeg.so
 
 %if %{with devel_tools}
-%files -n chromedriver
+%files chromedriver
 %doc AUTHORS
 %license LICENSE
-%{_bindir}/chromedriver
+%{_bindir}/%{name}-chromedriver
 %{chromiumdir}/chromedriver
 %endif
 
-%files libs-media-freeworld
+%files libs-media
 %{chromiumdir}/libffmpeg.so*
 # {chromiumdir}/libmedia.so*
 
@@ -725,7 +726,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{crd_path}/native-messaging-host
 %{crd_path}/remote-assistance-host
 %{_sysconfdir}/pam.d/chrome-remote-desktop
-%{_sysconfdir}/chromium/native-messaging-hosts/
+%{_sysconfdir}/chromium/remoting_native_messaging_host/
 %{_sysconfdir}/opt/chrome/
 %{crd_path}/remoting_locales/
 %{crd_path}/start-host
@@ -734,6 +735,10 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Jan 26 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  56.0.2924.76-2
+- Updated to 56.0.2924.76
+- Renamed to chromium-freeworld
 
 * Sun Dec 18 2016 - David Vasquez <davidjeremias82 AT gmail DOT com>  55.0.2883.87-2
 - Updated to 55.0.2883.87
