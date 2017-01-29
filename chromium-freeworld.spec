@@ -83,7 +83,7 @@ Source11:   chromium-freeworld.desktop
 
 # The following two source files are copied verbatim from
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/tree/
-Source12:   chromium.xml
+Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
 # Add a patch from Fedora to fix crash
@@ -521,10 +521,10 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 %if %{with devel_tools}
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release chrome third_party/ffmpeg widevinecdmadapter chrome_sandbox chromedriver -j$jobs
+ninja-build -C out/Release chrome widevinecdmadapter chrome_sandbox chromedriver -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome third_party/ffmpeg widevinecdmadapter chrome_sandbox chromedriver -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome widevinecdmadapter chrome_sandbox chromedriver -j$jobs
 %endif
 %else
 %if 0%{?ninja_build:1}
@@ -666,10 +666,10 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %files
 %license LICENSE
 %doc AUTHORS
-%{_bindir}/chromium
-%{_datadir}/appdata/chromium-freeworld.appdata.xml
-%{_datadir}/applications/chromium-freeworld.desktop
-%{_datadir}/gnome-control-center/default-apps/chromium.xml
+%{_bindir}/%{name}
+%{_datadir}/appdata/%{name}.appdata.xml
+%{_datadir}/applications/%{name}.desktop
+%{_datadir}/gnome-control-center/default-apps/%{name}.xml
 %{_datadir}/icons/hicolor/16x16/apps/chromium.png
 %{_datadir}/icons/hicolor/22x22/apps/chromium.png
 %{_datadir}/icons/hicolor/24x24/apps/chromium.png
@@ -679,7 +679,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_datadir}/icons/hicolor/64x64/apps/chromium.png
 %{_datadir}/icons/hicolor/128x128/apps/chromium.png
 %{_datadir}/icons/hicolor/256x256/apps/chromium.png
-%{_mandir}/man1/chromium.1.gz
+%{_mandir}/man1/%{name}.1.gz
 %dir %{chromiumdir}
 %{chromiumdir}/chromium
 %if %{with devel_tools}

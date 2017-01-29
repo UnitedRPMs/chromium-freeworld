@@ -4,9 +4,9 @@
   <web-browsers>
     <web-browser>
       <name>Chromium</name>
-      <executable>chromium-browser</executable>
-      <command>/usr/bin/chromium-browser %s</command>
-      <icon-name>chromium-browser</icon-name>
+      <executable>chromium-freeworld</executable>
+      <command>/usr/bin/chromium-freeworld %s</command>
+      <icon-name>chromium</icon-name>
       <run-in-terminal>false</run-in-terminal>
       <netscape-remote>false</netscape-remote>
       <!--
