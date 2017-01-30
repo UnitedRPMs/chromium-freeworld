@@ -723,7 +723,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{crd_path}/chrome-remote-desktop-host
 %{crd_path}/is-remoting-session
 %{crd_path}/lib
-%{crd_path}/native-messaging-host
+%{crd_path}/remoting_native_messaging_host
 %{crd_path}/remote-assistance-host
 %{_sysconfdir}/pam.d/chrome-remote-desktop
 %{_sysconfdir}/chromium/remoting_native_messaging_host/
