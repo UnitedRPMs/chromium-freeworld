@@ -211,6 +211,7 @@ your profile before changing channels.
 Summary: Shared libraries used by chromium (and chrome-remote-desktop)
 Requires: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: %{name}-libs%{_isa} = %{version}-%{release}
+Obsoletes: chromium-libs >= 54
 
 %description libs
 Shared libraries used by chromium (and chrome-remote-desktop).
@@ -219,6 +220,7 @@ Shared libraries used by chromium (and chrome-remote-desktop).
 %package chromedriver
 Summary: WebDriver for Google Chrome/Chromium
 Group: Development/Libraries
+Obsoletes: chromedriver >= 54
 
 %description chromedriver
 WebDriver is an open source tool for automated testing of webapps across many
@@ -232,6 +234,8 @@ members of the Chromium and WebDriver teams.
 Summary: Chromium media libraries built with all possible codecs
 Provides: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: libffmpeg.so()(64bit)
+Obsoletes: chromium-libs-media-freeworld >= 54
+Obsoletes: chromium-libs-media >= 54
 
 %description libs-media
 Chromium media libraries built with all possible codecs. Chromium is an
