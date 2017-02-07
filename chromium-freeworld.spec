@@ -55,7 +55,7 @@
 %bcond_without require_clang
 
 Name:       chromium-freeworld
-Version:    56.0.2924.76
+Version:    56.0.2924.87
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -188,7 +188,7 @@ Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
 Requires: re2
 Requires: %{name}-libs = %{version}-%{release}
-Obsoletes: chromium >= 54
+Provides: chromium >= 54
 Recommends: chromium-pepper-flash
 Recommends: chromium-widevine
 
@@ -211,7 +211,7 @@ your profile before changing channels.
 Summary: Shared libraries used by chromium (and chrome-remote-desktop)
 Requires: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: %{name}-libs%{_isa} = %{version}-%{release}
-Obsoletes: chromium-libs >= 54
+Provides: chromium-libs >= 54
 
 %description libs
 Shared libraries used by chromium (and chrome-remote-desktop).
@@ -220,7 +220,7 @@ Shared libraries used by chromium (and chrome-remote-desktop).
 %package chromedriver
 Summary: WebDriver for Google Chrome/Chromium
 Group: Development/Libraries
-Obsoletes: chromedriver >= 54
+Provides: chromedriver >= 54
 
 %description chromedriver
 WebDriver is an open source tool for automated testing of webapps across many
@@ -234,8 +234,8 @@ members of the Chromium and WebDriver teams.
 Summary: Chromium media libraries built with all possible codecs
 Provides: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: libffmpeg.so()(64bit)
-Obsoletes: chromium-libs-media-freeworld >= 54
-Obsoletes: chromium-libs-media >= 54
+Provides: chromium-libs-media-freeworld >= 54
+Provides: chromium-libs-media >= 54
 
 %description libs-media
 Chromium media libraries built with all possible codecs. Chromium is an
@@ -739,6 +739,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Mon Feb 06 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  56.0.2924.87-2
+- Updated to 56.0.2924.87
 
 * Thu Jan 26 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  56.0.2924.76-2
 - Updated to 56.0.2924.76
