@@ -5,7 +5,7 @@ steps:
   build-prj:
     type: build
     description: UC - build step
-    image-name: davidva/unibuild-24
+    image-name: davidva/unibuild-26
     dockerfile: Dockerfile
     tag: ${{CF_BRANCH}}
 #    privileged: true
