@@ -125,17 +125,16 @@ BuildRequires: clang
 %endif
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata
-BuildRequires: libgcc(x86-32), glibc(x86-32), libatomic
+# BuildRequires: libgcc(x86-32), glibc(x86-32)
+BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
+BuildRequires: libatomic
 BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
 BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss)
 BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
 BuildRequires: pkgconfig(gnome-keyring-1)
 BuildRequires: pkgconfig(libffi)
-BuildRequires: GConf2-devel
-BuildRequires: glib2-devel
-BuildRequires: glibc-devel
-BuildRequires: fontconfig-devel
+BuildRequires: libX11-devel
 
 # remove_bundled_libraries.py --do-remove
 BuildRequires: python2-rpm-macros
