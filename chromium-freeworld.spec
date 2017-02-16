@@ -129,8 +129,9 @@ BuildRequires: clang
 %endif
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata
-BuildRequires: libgcc(x86-32), glibc(x86-32)
+# BuildRequires: libgcc(x86-32), glibc(x86-32)
 # BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
+BuildRequires: pkgconfig(glib-2.0)
 BuildRequires: libatomic
 BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
 BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss)
