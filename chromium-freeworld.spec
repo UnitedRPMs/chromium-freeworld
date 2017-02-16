@@ -116,7 +116,6 @@ Patch5:     chromium-freeworld/chromium-56-gcc4.patch
 # Use -fpermissive to build WebKit
 Patch7:     chromium-56.0.2924.87-fpermissive.patch
 Patch8:     chromium-56.0.2924.87-gcc5.patch
-Patch9:     chromium-56.0.2924.87-gcc-49.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
