@@ -112,6 +112,10 @@ Patch1:     chromium-last-commit-position.patch
 Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 Patch4:     chromium-glibc-2.24.patch
 Patch5:     chromium-freeworld/chromium-56-gcc4.patch
+Patch6:     chromium-linker-memory.patch
+
+# Use -fpermissive to build WebKit
+Patch7:     chromium-56.0.2924.87-fpermissive.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -125,8 +129,8 @@ BuildRequires: clang
 %endif
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata
-# BuildRequires: libgcc(x86-32), glibc(x86-32)
-BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
+BuildRequires: libgcc(x86-32), glibc(x86-32)
+# BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
 BuildRequires: libatomic
 BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
 BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss)
@@ -134,7 +138,6 @@ BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
 BuildRequires: pkgconfig(gnome-keyring-1)
 BuildRequires: pkgconfig(libffi)
-BuildRequires: libX11-devel
 
 # remove_bundled_libraries.py --do-remove
 BuildRequires: python2-rpm-macros
@@ -277,6 +280,7 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
+%patch6 -p1
 %endif
 
 tar xJf %{S:998} -C %{_builddir}

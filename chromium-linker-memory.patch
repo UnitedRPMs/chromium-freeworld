@@ -1,0 +1,46 @@
+--- chromium-56.0.2897.0.orig/build/config/compiler/BUILD.gn
++++ chromium-56.0.2897.0/build/config/compiler/BUILD.gn
+@@ -346,7 +346,7 @@ config("compiler") {
+           # Only apply this to the target linker, since the host
+           # linker might not be gold, but isn't used much anyway.
+           "-Wl,--threads",
+-          "-Wl,--thread-count=4",
++          "-Wl,--thread-count=1",
+         ]
+       }
+     }
+@@ -367,22 +367,6 @@ config("compiler") {
+     ldflags += [ "-fuse-ld=bfd" ]
+   }
+ 
+-  if (is_posix && (use_gold || (use_lld && !is_nacl)) && !using_sanitizer &&
+-      !(is_android && use_order_profiling)) {
+-    # TODO(crbug.com/576197) - gcc on x86 platforms + gold + icf=all
+-    # doesn't currently work on non-chromeos platforms.
+-    # Additionally, on Android x86 --icf=safe seems to cause issues as well.
+-    # Additionally, on cast Android x86, --icf=all causes issues.
+-    if (is_android && current_cpu == "x86") {
+-      ldflags += [ "-Wl,--icf=none" ]
+-    } else if (is_clang || is_chromeos ||
+-               (current_cpu != "x86" && current_cpu != "x64")) {
+-      ldflags += [ "-Wl,--icf=all" ]
+-    } else if (!is_android) {
+-      ldflags += [ "-Wl,--icf=safe" ]
+-    }
+-  }
+-
+   if (linux_use_bundled_binutils) {
+     cflags += [ "-B$binutils_path" ]
+   }
+@@ -1290,11 +1274,6 @@ if (is_win) {
+       # Don't emit the GCC version ident directives, they just end up in the
+       # .comment section taking up binary size.
+       "-fno-ident",
+-
+-      # Put data and code in their own sections, so that unused symbols
+-      # can be removed at link time with --gc-sections.
+-      "-fdata-sections",
+-      "-ffunction-sections",
+     ]
+ 
+     common_optimize_on_ldflags += [
