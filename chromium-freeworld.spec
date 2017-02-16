@@ -112,10 +112,11 @@ Patch1:     chromium-last-commit-position.patch
 Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 Patch4:     chromium-glibc-2.24.patch
 Patch5:     chromium-freeworld/chromium-56-gcc4.patch
-Patch6:     chromium-linker-memory.patch
 
 # Use -fpermissive to build WebKit
 Patch7:     chromium-56.0.2924.87-fpermissive.patch
+Patch8:     chromium-56.0.2924.87-gcc5.patch
+Patch9:     chromium-56.0.2924.87-gcc-49.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 

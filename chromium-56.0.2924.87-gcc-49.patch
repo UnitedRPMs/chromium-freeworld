@@ -1,0 +1,12 @@
+diff -up chromium-56.0.2924.87/third_party/webrtc/modules/desktop_capture/screen_capturer_x11.cc.gcc49 chromium-56.0.2924.87/third_party/webrtc/modules/desktop_capture/screen_capturer_x11.cc
+--- chromium-56.0.2924.87/third_party/webrtc/modules/desktop_capture/screen_capturer_x11.cc.gcc49	2017-02-13 11:41:35.563497836 -0500
++++ chromium-56.0.2924.87/third_party/webrtc/modules/desktop_capture/screen_capturer_x11.cc	2017-02-13 11:42:43.608161336 -0500
+@@ -412,7 +412,7 @@ std::unique_ptr<DesktopCapturer> Desktop
+     return nullptr;
+   }
+ 
+-  return capturer;
++  return std::move(capturer);
+ }
+ 
+ }  // namespace webrtc
