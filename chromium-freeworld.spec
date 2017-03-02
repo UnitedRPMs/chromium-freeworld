@@ -56,7 +56,7 @@
 
 Name:       chromium-freeworld
 Version:    56.0.2924.87
-Release:    2%{?dist}
+Release:    4%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -112,10 +112,9 @@ Patch1:     chromium-last-commit-position.patch
 Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 Patch4:     chromium-glibc-2.24.patch
 Patch5:     chromium-freeworld/chromium-56-gcc4.patch
-
-# Use -fpermissive to build WebKit
-Patch7:     chromium-56.0.2924.87-fpermissive.patch
-Patch8:     chromium-56.0.2924.87-gcc5.patch
+# Fix issue with compilation on gcc7
+# Thanks to Ben Noordhuis
+Patch6:     chromium-56.0.2924.87-gcc7.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -129,17 +128,13 @@ BuildRequires: clang
 %endif
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata
-# BuildRequires: libgcc(x86-32), glibc(x86-32)
-# BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
-BuildRequires: pkgconfig(glib-2.0)
-BuildRequires: libatomic
+BuildRequires: libgcc(x86-32), glibc(x86-32), libatomic
 BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
 BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss)
 BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
 BuildRequires: pkgconfig(gnome-keyring-1)
 BuildRequires: pkgconfig(libffi)
-
 # remove_bundled_libraries.py --do-remove
 BuildRequires: python2-rpm-macros
 BuildRequires: python-beautifulsoup4
@@ -748,6 +743,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Mar 02 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  56.0.2924.87-4
+- Fix issue with compilation on gcc7, Thanks to Ben Noordhuis
 
 * Mon Feb 06 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  56.0.2924.87-2
 - Updated to 56.0.2924.87
