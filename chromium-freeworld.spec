@@ -55,8 +55,8 @@
 %bcond_without require_clang
 
 Name:       chromium-freeworld
-Version:    56.0.2924.87
-Release:    4%{?dist}
+Version:    57.0.2987.98
+Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -743,6 +743,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Fri Mar 10 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  57.0.2987.98-2
+- Updated to 57.0.2987.98-2
 
 * Thu Mar 02 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  56.0.2924.87-4
 - Fix issue with compilation on gcc7, Thanks to Ben Noordhuis

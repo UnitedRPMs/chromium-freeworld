@@ -25,6 +25,8 @@ else
 fi
 export LD_LIBRARY_PATH
 
+LD_PRELOAD=$LIBDIR/libffmpeg.so
+
 # Set CHROME_VERSION_EXTRA visible in the About dialog and in about:version
 export CHROME_VERSION_EXTRA="Built from source for @@BUILDTARGET@@"
 
