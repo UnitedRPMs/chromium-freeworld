@@ -111,10 +111,13 @@ Patch1:     chromium-last-commit-position.patch
 # https://codereview.chromium.org/2310513002
 Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 Patch4:     chromium-glibc-2.24.patch
-Patch5:     chromium-freeworld/chromium-56-gcc4.patch
+Patch5:     chromium-57-gcc4.patch
 # Fix issue with compilation on gcc7
 # Thanks to Ben Noordhuis
 Patch6:     chromium-56.0.2924.87-gcc7.patch
+Patch7:     chromium-FORTIFY_SOURCE.patch
+Patch8:     chromium-57.0.2987.98-gcc48-compat-version-stdatomic.patch
+Patch9:     chromium-57.0.2987.98-unique-ptr-fix.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
