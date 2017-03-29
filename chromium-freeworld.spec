@@ -4,6 +4,7 @@
 #  [3] https://build.opensuse.org/package/show/openSUSE:Factory/chromium
 #  [4] https://pkgs.fedoraproject.org/cgit/rpms/chromium.git (A kick in the ass!)
 #  [5] http://copr-dist-git.fedorainfracloud.org/cgit/lantw44/chromium/chromium.git
+#  [6] https://anonscm.debian.org/cgit/pkg-chromium/pkg-chromium.git/tree/debian
 
 
 %global chromiumdir %{_libdir}/chromium
@@ -21,12 +22,6 @@
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
 %bcond_without normalsource
 %bcond_without specific_source
-%bcond_with _nacl
-# About nacl
-# SELinux is preventing .../nacl_helper from getattr access on the file /etc/passwd
-# https://bugzilla.redhat.com/show_bug.cgi?id=1204307
-# why should chromium be wanting access to /etc/passwd - possible security risk.
-
 
 %if 0%{?fedora} >= 24
 %bcond_without system_libvpx
@@ -39,6 +34,12 @@
 %bcond_without clang
 %else
 %bcond_with clang
+%endif
+
+%if 0%{?fedora} < 26
+%bcond_without system_jinja2
+%else
+%bcond_with system_jinja2
 %endif
 
 # https://github.com/dabeaz/ply/issues/66
@@ -54,8 +55,11 @@
 # Allow disabling unconditional build dependency on clang
 %bcond_without require_clang
 
+# Chromium breaks on wayland, hidpi, and colors with gtk3 enabled.
+%bcond_with _gkt3
+
 Name:       chromium-freeworld
-Version:    57.0.2987.98
+Version:    57.0.2987.110
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -86,18 +90,9 @@ Source11:   chromium-freeworld.desktop
 Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
-# Add a patch from Fedora to fix crash
-# https://bugzilla.redhat.com/show_bug.cgi?id=1361157
-# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ed93147
-Patch0:     chromium-unset-madv_free.patch
-
 # Add a patch from Fedora to fix GN build
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
 Patch1:     chromium-last-commit-position.patch
-
-# Add a patch from upstream to fix undefined reference error (solved)
-# https://codereview.chromium.org/2291783002
-# Patch2:     chromium-fix-undefined-reference.patch
 
 # Building with GCC 6 requires -fno-delete-null-pointer-checks to avoid crashes
 # Unfortunately, it is not possible to add additional compiler flags with
@@ -110,14 +105,17 @@ Patch1:     chromium-last-commit-position.patch
 # https://bugs.chromium.org/p/v8/issues/detail?id=3782
 # https://codereview.chromium.org/2310513002
 Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
-Patch4:     chromium-glibc-2.24.patch
-Patch5:     chromium-57-gcc4.patch
-# Fix issue with compilation on gcc7
-# Thanks to Ben Noordhuis
-Patch6:     chromium-56.0.2924.87-gcc7.patch
-Patch7:     chromium-FORTIFY_SOURCE.patch
-Patch8:     chromium-57.0.2987.98-gcc48-compat-version-stdatomic.patch
-Patch9:     chromium-57.0.2987.98-unique-ptr-fix.patch
+
+# Add several patches from Fedora to fix build with GCC 7
+# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
+Patch4:     chromium-webkit-fpermissive.patch
+# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=54f615e
+# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ce69059
+Patch5:     chromium-v8-gcc7.patch
+
+Patch12:    buildflags.patch
+Patch13:    parallel.patch
+
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -125,8 +123,8 @@ ExclusiveArch: i686 x86_64 armv7l
 %if 0%{?fedora} >= 22
 BuildRequires: gcc >= 5.1.1-2
 %endif
-# Chromium 54 requires clang to enable nacl support
-%if %{with clang} || %{with require_clang} || %{with _nacl}
+
+%if %{with clang} || %{with require_clang} 
 BuildRequires: clang
 %endif
 # Basic tools and libraries
@@ -142,10 +140,12 @@ BuildRequires: pkgconfig(libffi)
 BuildRequires: python2-rpm-macros
 BuildRequires: python-beautifulsoup4
 BuildRequires: python-html5lib
+%if %{with system_jinja2}
 %if 0%{?fedora} >= 24
 BuildRequires: python2-jinja2
 %else
 BuildRequires: python-jinja2
+%endif
 %endif
 %if 0%{?fedora} >= 26
 BuildRequires: python2-markupsafe
@@ -272,14 +272,13 @@ Remote desktop support for google-chrome & chromium.
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 %endif
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
-%setup -T -D chromium-%{version}
-%patch0 -p1
+%setup -T -D -n chromium-%{version}
 %patch1 -p1
-# patch2 -p1
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch6 -p1
+%patch12 -p1
+%patch13 -p1
 %endif
 
 tar xJf %{S:998} -C %{_builddir}
@@ -289,6 +288,8 @@ tar xJf %{S:997} -C %{_builddir}
 # Fix hardcoded path in remoting code
 sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/daemon_controller_delegate_linux.cc
 %endif
+
+#sed -i 's|-Wglobal-constructors|-Wglobal-constructors -Wno-expansion-to-defined -fno-delete-null-pointer-checks|g' third_party/WebKit/Source/BUILD.gn
 
 
 ### build with widevine support
@@ -351,6 +352,9 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
     third_party/hunspell \
     third_party/iccjpeg \
     third_party/icu \
+%if !%{with system_jinja2}
+    third_party/jinja2 \
+%endif
     third_party/jstemplate \
     third_party/khronos \
     third_party/leveldatabase \
@@ -404,6 +408,7 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
     third_party/smhasher \
     third_party/speech-dispatcher \
     third_party/sqlite \
+    third_party/expat \
     third_party/tcmalloc \
     third_party/usb_ids \
     third_party/usrsctp \
@@ -447,8 +452,12 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
 sed -i "s|'ninja'|'ninja-build'|" tools/gn/bootstrap/bootstrap.py
 sed -i 's|//third_party/usb_ids|/usr/share/hwdata|g' device/usb/BUILD.gn
 
+%if %{with system_jinja2}
 rmdir third_party/jinja2 third_party/markupsafe
 ln -s %{python2_sitelib}/jinja2 third_party/jinja2
+%endif
+
+rmdir third_party/markupsafe
 ln -s %{python2_sitearch}/markupsafe third_party/markupsafe
 
 %if %{with system_ply}
@@ -456,24 +465,38 @@ rmdir third_party/ply
 ln -s %{python2_sitelib}/ply third_party/ply
 %endif
 
+mkdir -p native_client/toolchain/.tars/linux_x86
+touch native_client/toolchain/.tars/linux_x86/pnacl_translator.json
+
+pushd native_client/toolchain
+ln -s ../../out/Release/gen/sdk/linux_x86 linux_x86
+popd
+
+mkdir -p third_party/llvm-build/Release+Asserts/bin
+pushd third_party/llvm-build/Release+Asserts/bin
+ln -s /usr/bin/clang clang
+popd
+
 
 %build
 cd %{_builddir}/chromium-%{version}/
 
 %if %{with clang}
 export CC=clang CXX=clang++
+#CXXFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
+#CFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
 %endif
+
 
 _flags+=(
     'is_debug=false'
 %if 0%{?clang}
-is_clang=true 
-    'clang_base_path=\"/usr\"'
+    'is_clang=true' 
+    'clang_base_path="/usr"'
     'clang_use_chrome_plugins=false'
 %else
     'is_clang=false' 
 %endif
-    'symbol_level=0'
     'fatal_linker_warnings=false'
     'treat_warnings_as_errors=false'
     'fieldtrial_testing_like_official_build=true'
@@ -487,19 +510,13 @@ is_clang=true
     'use_gconf=false'
     'use_gnome_keyring=false'
     'use_gold=false'
-    'use_gtk3=false'
     'use_kerberos=true'
     'use_pulseaudio=true'
     'use_sysroot=false'
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
-%if %{with _nacl}
-    'enable_nacl=true'
-    'enable_nacl_nonsfi=true'
-%else
     'enable_nacl=false'
     'enable_nacl_nonsfi=false'
-%endif
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
@@ -507,15 +524,13 @@ is_clang=true
     'system_libdir="lib64"'
 %endif
     'is_component_ffmpeg=true' 
-%ifarch %{arm}
-    "target_cpu=\"arm\""
-    "target_sysroot_dir=\"\""
-    'arm_use_neon=false'
-    'arm_optionally_use_neon=false'
-    'arm_use_thumb=true'
-    'is_component_build=true'
-%else
     'is_component_build=false'
+    'symbol_level=0'
+    'remove_webcore_debug_symbols=true'
+%if %{with _gtk3}
+    'use_gtk3=true'
+%else
+    'use_gtk3=false'
 %endif
 )
 
@@ -532,10 +547,10 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 %if %{with devel_tools}
 %if 0%{?ninja_build:1}
 echo 'first attemp'
-ninja-build -C out/Release chrome widevinecdmadapter chrome_sandbox chromedriver -j$jobs
+ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %else
 echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome widevinecdmadapter chrome_sandbox chromedriver -j$jobs
+ninja-build %{_smp_mflags} -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %endif
 %else
 %if 0%{?ninja_build:1}
@@ -575,14 +590,14 @@ install -m 755 out/Release/chromedriver %{buildroot}%{chromiumdir}/
 ln -s %{chromiumdir}/chromedriver %{buildroot}%{_bindir}/%{name}-chromedriver
 %endif
 
-%if !%{with system_libicu}
+# libicu
 install -m 644 out/Release/icudtl.dat %{buildroot}%{chromiumdir}/
-%endif
-%if %{with _nacl}
+
+# nacl
 install -m 755 out/Release/nacl_helper %{buildroot}%{chromiumdir}/
 install -m 755 out/Release/nacl_helper_bootstrap %{buildroot}%{chromiumdir}/
 install -m 644 out/Release/nacl_irt_x86_64.nexe %{buildroot}%{chromiumdir}/
-%endif
+
 install -m 644 out/Release/natives_blob.bin %{buildroot}%{chromiumdir}/
 install -m 644 out/Release/snapshot_blob.bin %{buildroot}%{chromiumdir}/
 install -m 644 out/Release/*.pak %{buildroot}%{chromiumdir}/
@@ -698,11 +713,11 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/chrome-sandbox
 %endif
 %{chromiumdir}/icudtl.dat
-%if %{with _nacl}
+
 %{chromiumdir}/nacl_helper
 %{chromiumdir}/nacl_helper_bootstrap
 %{chromiumdir}/nacl_irt_x86_64.nexe
-%endif
+
 %{chromiumdir}/natives_blob.bin
 %{chromiumdir}/snapshot_blob.bin
 %{chromiumdir}/*.pak
@@ -746,6 +761,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Tue Mar 28 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  57.0.2987.98-2
+- Updated to 57.0.2987.110
 
 * Fri Mar 10 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  57.0.2987.98-2
 - Updated to 57.0.2987.98-2
