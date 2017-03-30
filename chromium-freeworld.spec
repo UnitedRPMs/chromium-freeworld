@@ -594,9 +594,9 @@ ln -s %{chromiumdir}/chromedriver %{buildroot}%{_bindir}/%{name}-chromedriver
 install -m 644 out/Release/icudtl.dat %{buildroot}%{chromiumdir}/
 
 # nacl
-install -m 755 out/Release/nacl_helper %{buildroot}%{chromiumdir}/
-install -m 755 out/Release/nacl_helper_bootstrap %{buildroot}%{chromiumdir}/
-install -m 644 out/Release/nacl_irt_x86_64.nexe %{buildroot}%{chromiumdir}/
+#install -m 755 out/Release/nacl_helper %{buildroot}%{chromiumdir}/
+#install -m 755 out/Release/nacl_helper_bootstrap %{buildroot}%{chromiumdir}/
+#install -m 644 out/Release/nacl_irt_x86_64.nexe %{buildroot}%{chromiumdir}/
 
 install -m 644 out/Release/natives_blob.bin %{buildroot}%{chromiumdir}/
 install -m 644 out/Release/snapshot_blob.bin %{buildroot}%{chromiumdir}/
@@ -714,9 +714,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 %{chromiumdir}/icudtl.dat
 
-%{chromiumdir}/nacl_helper
-%{chromiumdir}/nacl_helper_bootstrap
-%{chromiumdir}/nacl_irt_x86_64.nexe
+#{chromiumdir}/nacl_helper
+#{chromiumdir}/nacl_helper_bootstrap
+#{chromiumdir}/nacl_irt_x86_64.nexe
 
 %{chromiumdir}/natives_blob.bin
 %{chromiumdir}/snapshot_blob.bin
