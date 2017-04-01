@@ -457,7 +457,7 @@ rmdir third_party/jinja2 third_party/markupsafe
 ln -s %{python2_sitelib}/jinja2 third_party/jinja2
 %endif
 
-rmdir third_party/markupsafe
+rmdir third_party/markupsafe && mkdir -p third_party/markupsafe
 ln -s %{python2_sitearch}/markupsafe third_party/markupsafe
 
 %if %{with system_ply}
