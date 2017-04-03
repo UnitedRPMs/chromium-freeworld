@@ -42,6 +42,10 @@
 %bcond_with system_jinja2
 %endif
 
+# markupsafe
+%bcond_with system_markupsafe
+
+
 # https://github.com/dabeaz/ply/issues/66
 %if 0%{?fedora} >= 24
 %bcond_without system_ply
@@ -147,11 +151,15 @@ BuildRequires: python2-jinja2
 BuildRequires: python-jinja2
 %endif
 %endif
+
+%if %{with system_markupsafe}
 %if 0%{?fedora} >= 26
 BuildRequires: python2-markupsafe
 %else
 BuildRequires: python-markupsafe
 %endif
+%endif
+
 %if %{with system_ply}
 BuildRequires: python2-ply
 %endif
@@ -189,6 +197,8 @@ BuildRequires: clang
 %endif
 # GTK3
 BuildRequires: pkgconfig(gtk+-3.0) 
+# markupsafe missed
+BuildRequires: git
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
@@ -284,6 +294,13 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
 
+pushd third_party
+rm -rf markupsafe/
+git clone --depth 1 https://github.com/pallets/markupsafe.git 
+cp -f $PWD/markupsafe/markupsafe/*.py $PWD/markupsafe/
+cp -f $PWD/markupsafe/markupsafe/*.c $PWD/markupsafe/
+popd
+
 %if %{with remote_desktop}
 # Fix hardcoded path in remoting code
 sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/daemon_controller_delegate_linux.cc
@@ -319,6 +336,7 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
     third_party/adobe \
     third_party/analytics \
     third_party/angle \
+    third_party/markupsafe \
     third_party/angle/src/common/third_party/numerics \
     third_party/angle/src/third_party/compiler \
     third_party/angle/src/third_party/libXNVCtrl \
@@ -453,12 +471,14 @@ sed -i "s|'ninja'|'ninja-build'|" tools/gn/bootstrap/bootstrap.py
 sed -i 's|//third_party/usb_ids|/usr/share/hwdata|g' device/usb/BUILD.gn
 
 %if %{with system_jinja2}
-rmdir third_party/jinja2 third_party/markupsafe
+rmdir third_party/jinja2 
 ln -s %{python2_sitelib}/jinja2 third_party/jinja2
 %endif
 
+%if %{with system_markupsafe}
 rmdir third_party/markupsafe && mkdir -p third_party/markupsafe
 ln -s %{python2_sitearch}/markupsafe third_party/markupsafe
+%endif
 
 %if %{with system_ply}
 rmdir third_party/ply
