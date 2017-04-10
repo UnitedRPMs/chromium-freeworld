@@ -63,7 +63,7 @@
 %bcond_with _gkt3
 
 Name:       chromium-freeworld
-Version:    57.0.2987.110
+Version:    57.0.2987.133
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -781,6 +781,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Sat Apr 08 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  57.0.2987.133-2
+- Updated to 57.0.2987.133
 
 * Tue Mar 28 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  57.0.2987.98-2
 - Updated to 57.0.2987.110
