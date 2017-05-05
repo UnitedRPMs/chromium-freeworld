@@ -21,7 +21,6 @@
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
 %bcond_without normalsource
-%bcond_without specific_source
 
 %if 0%{?fedora} >= 24
 %bcond_without system_libvpx
@@ -63,7 +62,7 @@
 %bcond_with _gkt3
 
 Name:       chromium-freeworld
-Version:    57.0.2987.133
+Version:    58.0.3029.96
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -278,9 +277,7 @@ Remote desktop support for google-chrome & chromium.
 %if %{with normalsource}
 %autosetup -n chromium-%{version} -p1
 %else
-%if %{with specific_source}
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
-%endif
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %setup -T -D -n chromium-%{version}
 %patch1 -p1
@@ -781,6 +778,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Fri May 05 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  58.0.3029.96-2
+- Updated to 58.0.3029.96
 
 * Sat Apr 08 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  57.0.2987.133-2
 - Updated to 57.0.2987.133
