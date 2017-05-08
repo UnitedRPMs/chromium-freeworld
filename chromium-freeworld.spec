@@ -72,7 +72,7 @@ URL:        https://www.chromium.org
 Vendor:     URPMS
 
 %if %{with normalsource}
-Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
+Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz#/%{name}-%{version}.tar.gz
 %endif
 Source1:    chromium-latest.py
 Source2:    chromium-ffmpeg-clean.sh
