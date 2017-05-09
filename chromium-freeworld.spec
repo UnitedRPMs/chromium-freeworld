@@ -13,11 +13,6 @@
 %global __requires_exclude_from ^%{chromiumdir}/libffmpeg.*$
 %global __requires_exclude_from ^%{chromiumdir}/libmedia.*$
 
-%define _compression_level    7
-%define _smp_mflags -j%(echo "`/usr/bin/getconf _NPROCESSORS_ONLN`")
-#%_source_payload   w%{_compression_level}T%{_smp_mflags}.xzdio
-#%_binary_payload   w%{_compression_level}T%{_smp_mflags}.xzdio
-
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_without devel_tools
 # Chromium users doesn't need chrome-remote-desktop
@@ -203,6 +198,7 @@ BuildRequires: clang
 BuildRequires: pkgconfig(gtk+-3.0) 
 # markupsafe missed
 BuildRequires: git
+BuildRequires: bsdtar
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
