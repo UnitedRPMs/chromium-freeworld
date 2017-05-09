@@ -13,6 +13,11 @@
 %global __requires_exclude_from ^%{chromiumdir}/libffmpeg.*$
 %global __requires_exclude_from ^%{chromiumdir}/libmedia.*$
 
+%define _compression_level    7
+%define _smp_mflags -j%(echo "`/usr/bin/getconf _NPROCESSORS_ONLN`")
+#%_source_payload   w%{_compression_level}T%{_smp_mflags}.xzdio
+#%_binary_payload   w%{_compression_level}T%{_smp_mflags}.xzdio
+
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_without devel_tools
 # Chromium users doesn't need chrome-remote-desktop
@@ -20,7 +25,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 %if 0%{?fedora} >= 24
 %bcond_without system_libvpx
@@ -72,7 +77,7 @@ URL:        https://www.chromium.org
 Vendor:     URPMS
 
 %if %{with normalsource}
-Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz#/%{name}-%{version}.tar.gz
+Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 %endif
 Source1:    chromium-latest.py
 Source2:    chromium-ffmpeg-clean.sh

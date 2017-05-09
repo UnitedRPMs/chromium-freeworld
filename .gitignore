@@ -4,3 +4,4 @@ RPMS/*
 SPECS/*
 SRPMS/*
 chromium-*.tar.xz
+.directory
