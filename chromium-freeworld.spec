@@ -62,7 +62,7 @@
 %bcond_with _gkt3
 
 Name:       chromium-freeworld
-Version:    58.0.3029.96
+Version:    58.0.3029.110
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -80,6 +80,7 @@ Source3:    chromium-ffmpeg-free-sources.py
 %if %{with remote_desktop}
 Source33:   chrome-remote-desktop.service
 %endif
+# Source4:    https://chromium.googlesource.com/chromium/src.git/+archive/%{version}/third_party/node.tar.gz
 Source997:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/depot_tools.tar.xz
 Source998:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binaries.tar.xz
 
@@ -116,9 +117,9 @@ Patch4:     chromium-webkit-fpermissive.patch
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ce69059
 Patch5:     chromium-v8-gcc7.patch
 
-Patch12:    buildflags.patch
+#Patch12:    buildflags.patch
 Patch13:    parallel.patch
-
+Patch14:    chromium-gn-bootstrap-r2.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -198,7 +199,7 @@ BuildRequires: clang
 BuildRequires: pkgconfig(gtk+-3.0) 
 # markupsafe missed
 BuildRequires: git
-BuildRequires: bsdtar
+BuildRequires: nodejs
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
@@ -285,7 +286,7 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch12 -p1
+#patch12 -p1
 %patch13 -p1
 %endif
 
@@ -299,13 +300,14 @@ cp -f $PWD/markupsafe/markupsafe/*.py $PWD/markupsafe/
 cp -f $PWD/markupsafe/markupsafe/*.c $PWD/markupsafe/
 popd
 
+# node fix
+mkdir -p third_party/node/linux/node-linux-x64/bin
+ln -s /usr/bin/node third_party/node/linux/node-linux-x64/bin/node
+
 %if %{with remote_desktop}
 # Fix hardcoded path in remoting code
 sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/daemon_controller_delegate_linux.cc
 %endif
-
-#sed -i 's|-Wglobal-constructors|-Wglobal-constructors -Wno-expansion-to-defined -fno-delete-null-pointer-checks|g' third_party/WebKit/Source/BUILD.gn
-
 
 ### build with widevine support
 
@@ -331,6 +333,8 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
     native_client/src/third_party/valgrind \
     net/third_party/mozilla_security_manager \
     net/third_party/nss \
+    third_party/node \
+    third_party/node/node_modules/vulcanize/third_party/UglifyJS2 \
     third_party/adobe \
     third_party/analytics \
     third_party/angle \
@@ -779,6 +783,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed May 10 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  58.0.3029.110-2
+- Updated to 58.0.3029.110
 
 * Fri May 05 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  58.0.3029.96-2
 - Updated to 58.0.3029.96
