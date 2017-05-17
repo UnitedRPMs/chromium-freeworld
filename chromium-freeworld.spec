@@ -22,7 +22,7 @@
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
 %bcond_without normalsource
 
-%if 0%{?fedora} >= 24
+%if 0
 %bcond_without system_libvpx
 %else
 %bcond_with system_libvpx
