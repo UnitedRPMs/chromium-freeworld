@@ -62,7 +62,7 @@
 %bcond_with _gkt3
 
 Name:       chromium-freeworld
-Version:    58.0.3029.110
+Version:    59.0.3071.109
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -279,26 +279,30 @@ Remote desktop support for google-chrome & chromium.
 %if %{with normalsource}
 %autosetup -n chromium-%{version} -p1
 %else
-wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
-tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
+#wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
+#tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
+git clone --depth 1 https://chromium.googlesource.com/chromium/src chromium-%{version}
 %setup -T -D -n chromium-%{version}
 %patch1 -p1
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-#patch12 -p1
 %patch13 -p1
+%patch14 -p1
+git checkout --force 9f4b44b898b326679817ee5a327256f8fac6ee75
 %endif
 
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
 
+%if %{with normalsource}
 pushd third_party
 rm -rf markupsafe/
 git clone --depth 1 https://github.com/pallets/markupsafe.git 
 cp -f $PWD/markupsafe/markupsafe/*.py $PWD/markupsafe/
 cp -f $PWD/markupsafe/markupsafe/*.c $PWD/markupsafe/
 popd
+%endif
 
 # node fix
 mkdir -p third_party/node/linux/node-linux-x64/bin
@@ -783,6 +787,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Tue Jun 20 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  59.0.3071.109-2
+- Updated to 59.0.3071.109
 
 * Wed May 10 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  58.0.3029.110-2
 - Updated to 58.0.3029.110
