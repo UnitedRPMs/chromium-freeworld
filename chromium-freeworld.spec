@@ -283,14 +283,14 @@ Remote desktop support for google-chrome & chromium.
 #tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 git clone --depth 1 https://chromium.googlesource.com/chromium/src chromium-%{version}
 %setup -T -D -n chromium-%{version}
+git fetch --tags
+git checkout -b tags/%{version}
 #%patch1 -p1
 %patch3 -p1
 %patch4 -p1
 #%patch5 -p1
 %patch13 -p1
 #%patch14 -p1
-git fetch --tags
-git checkout -b tags/%{version}
 %endif
 
 tar xJf %{S:998} -C %{_builddir}
