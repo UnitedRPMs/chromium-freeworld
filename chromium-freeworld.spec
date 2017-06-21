@@ -20,7 +20,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 %if 0
 %bcond_without system_libvpx
@@ -288,7 +288,7 @@ git clone --depth 1 https://chromium.googlesource.com/chromium/src chromium-%{ve
 %patch4 -p1
 #%patch5 -p1
 %patch13 -p1
-%patch14 -p1
+#%patch14 -p1
 git fetch --tags
 git checkout -b tags/%{version}
 %endif
