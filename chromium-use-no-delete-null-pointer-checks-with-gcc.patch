@@ -1,6 +1,6 @@
---- a/build/config/compiler/BUILD.gn		2017-05-02 13:02:46.000000000 -0600
-+++ b/build/config/compiler/BUILD_gcc.gn	2017-05-10 01:45:41.584757984 -0600
-@@ -261,6 +261,15 @@
+--- a/build/config/compiler/BUILD.gn      2016-10-13 03:02:53.000000000 +0800
++++ b/build/config/compiler/BUILD.gn      2016-10-19 22:00:03.528903842 +0800
+@@ -228,6 +228,14 @@
      defines += [ "CR_CLANG_REVISION=\"$clang_revision\"" ]
    }
  
@@ -11,7 +11,6 @@
 +    # we disable this optimization. See: https://crbug.com/v8/3782
 +    cflags += [ "-fno-delete-null-pointer-checks" ]
 +  }
-+
 +
    # Non-Mac Posix compiler flags setup.
    # -----------------------------------
