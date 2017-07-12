@@ -5,6 +5,7 @@
 #  [4] https://pkgs.fedoraproject.org/cgit/rpms/chromium.git (A kick in the ass!)
 #  [5] http://copr-dist-git.fedorainfracloud.org/cgit/lantw44/chromium/chromium.git
 #  [6] https://anonscm.debian.org/cgit/pkg-chromium/pkg-chromium.git/tree/debian
+#  [7] http://www.linuxfromscratch.org/blfs/view/cvs/xsoft/chromium.html
 
 
 %global chromiumdir %{_libdir}/chromium
@@ -70,7 +71,7 @@
 %bcond_with _gkt3
 
 Name:       chromium-freeworld
-Version:    59.0.3071.109
+Version:    59.0.3071.115
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -329,6 +330,10 @@ ln -s /usr/bin/node third_party/node/linux/node-linux-x64/bin/node
 # Fix hardcoded path in remoting code
 sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/daemon_controller_delegate_linux.cc
 %endif
+
+# https://groups.google.com/a/chromium.org/d/msg/chromium-packagers/wuInaKJkosg/kMfIV_7wDgAJ
+git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 third_party/freetype/src
+
 
 ### build with widevine support
 
@@ -815,6 +820,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Sat Jul 08 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  59.0.3071.115-2
+- Updated to 59.0.3071.115
 
 * Tue Jun 20 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  59.0.3071.109-2
 - Updated to 59.0.3071.109
