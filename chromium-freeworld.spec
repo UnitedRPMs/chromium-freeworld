@@ -2,10 +2,12 @@
 #  [1] https://www.archlinux.org/packages/extra/x86_64/chromium/
 #  [2] https://packages.gentoo.org/packages/www-client/chromium
 #  [3] https://build.opensuse.org/package/show/openSUSE:Factory/chromium
-#  [4] https://pkgs.fedoraproject.org/cgit/rpms/chromium.git (A kick in the ass!)
+#  [4] https://pkgs.fedoraproject.org/cgit/rpms/chromium.git 
 #  [5] http://copr-dist-git.fedorainfracloud.org/cgit/lantw44/chromium/chromium.git
 #  [6] https://anonscm.debian.org/cgit/pkg-chromium/pkg-chromium.git/tree/debian
 #  [7] http://www.linuxfromscratch.org/blfs/view/cvs/xsoft/chromium.html
+#  [8] https://aur.archlinux.org/packages/chromium-gtk2/
+#  [9] https://github.com/RussianFedora/chromium/
 
 
 %global chromiumdir %{_libdir}/chromium
@@ -71,7 +73,7 @@
 %bcond_with _gkt3
 
 Name:       chromium-freeworld
-Version:    59.0.3071.115
+Version:    60.0.3112.90
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -89,7 +91,6 @@ Source3:    chromium-ffmpeg-free-sources.py
 %if %{with remote_desktop}
 Source33:   chrome-remote-desktop.service
 %endif
-# Source4:    https://chromium.googlesource.com/chromium/src.git/+archive/%{version}/third_party/node.tar.gz
 Source997:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/depot_tools.tar.xz
 Source998:  https://github.com/UnitedRPMs/chromium-freeworld/raw/master/gn-binaries.tar.xz
 
@@ -103,34 +104,18 @@ Source11:   chromium-freeworld.desktop
 Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
+# Reverse https://chromium.googlesource.com/chromium/src/+/8d1845c2267b05df565fa33e3c5e2b0e242a21cc%5E%21/
+Patch0:     issue2961473002_1_10001.diff
+
 # Add a patch from Fedora to fix GN build
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
-Patch1:     chromium-last-commit-position.patch
-
-# Building with GCC 6 requires -fno-delete-null-pointer-checks to avoid crashes
-# Unfortunately, it is not possible to add additional compiler flags with
-# environment variables or command-line arguments when building with GN, so we
-# must patch the build file here.
-# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=7fe5f2bb
-# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=68853
-# https://bugs.debian.org/833524
-# https://anonscm.debian.org/cgit/pkg-chromium/pkg-chromium.git/commit/?id=dfd37f3
-# https://bugs.chromium.org/p/v8/issues/detail?id=3782
-# https://codereview.chromium.org/2310513002
-Patch3:     chromium-use-no-delete-null-pointer-checks-with-gcc.patch
-
+Patch1:     chromium-60.0.3112.7-last-commit-position.patch
 # Add several patches from Fedora to fix build with GCC 7
-# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
-Patch4:     chromium-webkit-fpermissive.patch
-# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=54f615e
-# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ce69059
-Patch5:     chromium-v8-gcc7.patch
-
-# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ce69059
-Patch12:    chromium-blink-gcc7.patch
-Patch13:    parallel.patch
-Patch14:    0001-ClientNativePixmapFactoryDmabuf-uses-ioctl-instead-o.patch
-Patch15:    0001-Fix-kernel-version-condition-for-including-dma-buf.h.patch
+Patch5:     chromium-60.0.3095.5-gcc7.patch
+Patch9:     chromium-56.0.2924.87-fpermissive.patch
+# Fixes from Gentoo
+Patch7:     chromium-gn-bootstrap-r8.patch
+Patch8:     chromium-FORTIFY_SOURCE-r1.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -215,11 +200,20 @@ BuildRequires: pkgconfig(gtk+-3.0)
 BuildRequires: git
 BuildRequires: nodejs
 BuildRequires: libdrm-devel
+BuildRequires: mesa-libGL-devel
+# vulcan
+BuildRequires: vulkan-devel
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
 Requires: re2
 Requires: %{name}-libs = %{version}-%{release}
+
+%if 0%{?fedora}
+# This enables support for u2f tokens
+Recommends: u2f-hidraw-policy
+%endif
+
 Provides: chromium >= 54
 Recommends: chromium-pepper-flash
 Recommends: chromium-widevine
@@ -292,23 +286,19 @@ Remote desktop support for google-chrome & chromium.
 
 %prep
 %if %{with normalsource}
-%autosetup -n chromium-%{version} -p1
+%setup -n chromium-%{version} 
 %else
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
-#git clone --depth 1 https://chromium.googlesource.com/chromium/src chromium-%{version}
 %setup -T -D -n chromium-%{version}
-#git fetch --tags
-#git checkout -b tags/%{version}
-%patch1 -p1
-%patch3 -p1
-%patch4 -p1
-%patch5 -p1
-%patch12 -p1
-%patch13 -p1
-%patch14 -p1
-%patch15 -p1
 %endif
+
+patch -Rp1 -i %{_sourcedir}/issue2961473002_1_10001.diff
+%patch1 -p1 -b .lastcommit
+%patch5 -p1 -b .gcc7
+%patch7 -p1 -b .gn-bootstrap-r8
+%patch8 -p1
+%patch9 -p1 -b .permissive
 
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
@@ -332,6 +322,7 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 %endif
 
 # https://groups.google.com/a/chromium.org/d/msg/chromium-packagers/wuInaKJkosg/kMfIV_7wDgAJ
+rm -rf third_party/freetype/src
 git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 third_party/freetype/src
 
 
@@ -458,7 +449,6 @@ third_party/skia \
     third_party/inspector_protocol \
 v8/third_party/inspector_protocol \
     third_party/woff2 \
-third_party/x86inc \
 third_party/xdg-utils \
     third_party/yasm/run_yasm.py \
     third_party/zlib/google \
@@ -468,7 +458,6 @@ third_party/xdg-utils \
     url/third_party/mozilla \
     third_party/swiftshader \
     third_party/swiftshader/third_party/llvm-subzero \
-    third_party/swiftshader/third_party/pnacl-subzero \
     third_party/swiftshader/third_party/subzero \
     third_party/pdfium \
     third_party/pdfium/third_party/agg23 \
@@ -480,6 +469,12 @@ third_party/xdg-utils \
     third_party/pdfium/third_party/libopenjpeg20 \
     third_party/pdfium/third_party/libpng16 \
     third_party/pdfium/third_party/libtiff \
+    third_party/googletest \
+    third_party/glslang-angle \
+    third_party/vulkan-validation-layers \
+    third_party/spirv-tools-angle \
+    third_party/spirv-headers \
+    third_party/catapult/tracing/third_party/oboe \
 %if !%{with system_harfbuzz}
     third_party/harfbuzz-ng \
 %endif
@@ -542,8 +537,8 @@ cd %{_builddir}/chromium-%{version}/
 
 %if %{with clang}
 export CC=clang CXX=clang++
-#CXXFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
-#CFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
+CXXFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
+CFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
 %endif
 
 
@@ -592,6 +587,16 @@ _flags+=(
     'use_gtk3=false'
 %endif
 )
+
+if tc-is-cross-compiler; then
+		local -x AR=${BUILD_AR}
+		local -x CC=${BUILD_CC}
+		local -x CXX=${BUILD_CXX}
+		local -x NM=${BUILD_NM}
+		local -x CFLAGS=${BUILD_CFLAGS}
+		local -x CXXFLAGS=${BUILD_CXXFLAGS}
+		local -x LDFLAGS=${BUILD_LDFLAGS}
+	fi
 
 export PATH=%{_builddir}/tools/depot_tools/:"$PATH"
 
@@ -820,6 +825,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Aug 03 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  60.0.3112.90-2
+- Updated to 60.0.3112.90-2
 
 * Sat Jul 08 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  59.0.3071.115-2
 - Updated to 59.0.3071.115
