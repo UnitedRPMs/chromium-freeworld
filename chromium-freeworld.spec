@@ -25,6 +25,10 @@
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
 %bcond_without normalsource
 
+%if 0%{?fedora} >= 27
+%global debug_package %{nil}
+%endif
+
 # Use clang compiler (downloaded binaries from google). Results in faster build and smaller chromium.
 %if 0
 %bcond_without clang
@@ -116,6 +120,11 @@ Patch9:     chromium-56.0.2924.87-fpermissive.patch
 # Fixes from Gentoo
 Patch7:     chromium-gn-bootstrap-r8.patch
 Patch8:     chromium-FORTIFY_SOURCE-r1.patch
+
+# Change struct ucontext to ucontext_t in breakpad
+# https://patchwork.openembedded.org/patch/141358/
+Patch10:    chromium-59.0.3071.115-ucontext-fix.patch
+
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -299,6 +308,9 @@ patch -Rp1 -i %{_sourcedir}/issue2961473002_1_10001.diff
 %patch7 -p1 -b .gn-bootstrap-r8
 %patch8 -p1
 %patch9 -p1 -b .permissive
+%if 0%{?fedora} >= 27
+%patch10 -p1 -b .ucontextfix
+%endif
 
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
