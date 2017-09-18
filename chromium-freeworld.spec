@@ -30,11 +30,12 @@
 %endif
 
 # Use clang compiler (downloaded binaries from google). Results in faster build and smaller chromium.
-%if 0
+#if 0
 %bcond_without clang
-%else
-%bcond_with clang
-%endif
+#else
+#bcond_with clang
+#endif
+
 
 %if 0%{?fedora} < 26
 %bcond_without system_jinja2
@@ -76,8 +77,11 @@
 # Chromium breaks on wayland, hidpi, and colors with gtk3 enabled.
 %bcond_with _gkt3
 
+# In UnitedRPMs, we have openh264
+%bcond_without system_openh264
+
 Name:       chromium-freeworld
-Version:    60.0.3112.113
+Version:    61.0.3163.91
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -108,22 +112,29 @@ Source11:   chromium-freeworld.desktop
 Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
-# Reverse https://chromium.googlesource.com/chromium/src/+/8d1845c2267b05df565fa33e3c5e2b0e242a21cc%5E%21/
-Patch0:     issue2961473002_1_10001.diff
-
-# Add a patch from Fedora to fix GN build
-# http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
-Patch1:     chromium-60.0.3112.7-last-commit-position.patch
+# Add a patch from Gentoo to fix ATK-related build failure
+# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=04322d0
+Patch0:    chromium-atk.patch
 # Add several patches from Fedora to fix build with GCC 7
-Patch5:     chromium-60.0.3095.5-gcc7.patch
-Patch9:     chromium-56.0.2924.87-fpermissive.patch
-# Fixes from Gentoo
-Patch7:     chromium-gn-bootstrap-r8.patch
-Patch8:     chromium-FORTIFY_SOURCE-r1.patch
+# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
+Patch1:    chromium-blink-fpermissive.patch
+# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ce69059
+Patch2:    chromium-blink-gcc7.patch
+# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=04322d0
+Patch3:    chromium-gn-bootstrap.patch
+# Add a patch from Fedora to fix GN build
+# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
+Patch4:    chromium-last-commit-position.patch
+# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=c38ed01
+Patch5:    chromium-safe-math-gcc.patch
 
-# Change struct ucontext to ucontext_t in breakpad
-# https://patchwork.openembedded.org/patch/141358/
-Patch10:    chromium-59.0.3071.115-ucontext-fix.patch
+# Add a patch from Gentoo to fix build with GLIBC 2.26
+# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=2901239
+Patch6:    chromium-ucontext-glibc226.patch
+# https://codereview.chromium.org/2310513002
+Patch7:    chromium-use-no-delete-null-pointer-checks-with-gcc.patch
+# Gtk2 FIX
+Patch8:    ca40720.diff
 
 
 ExclusiveArch: i686 x86_64 armv7l
@@ -183,6 +194,9 @@ BuildRequires: pkgconfig(libxslt)
 BuildRequires: pkgconfig(libxml-2.0)
 %endif
 BuildRequires: re2-devel
+%if %{with system_openh264}
+BuildRequires: openh264-devel
+%endif
 BuildRequires: snappy-devel
 BuildRequires: yasm
 BuildRequires: zlib-devel
@@ -295,21 +309,11 @@ Remote desktop support for google-chrome & chromium.
 
 %prep
 %if %{with normalsource}
-%setup -n chromium-%{version} 
+%autosetup -n chromium-%{version} -p1
 %else
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
-%setup -T -D -n chromium-%{version}
-%endif
-
-patch -Rp1 -i %{_sourcedir}/issue2961473002_1_10001.diff
-%patch1 -p1 -b .lastcommit
-%patch5 -p1 -b .gcc7
-%patch7 -p1 -b .gn-bootstrap-r8
-%patch8 -p1
-%patch9 -p1 -b .permissive
-%if 0%{?fedora} >= 27
-%patch10 -p1 -b .ucontextfix
+%setup -T -D -n chromium-%{version} -p1
 %endif
 
 tar xJf %{S:998} -C %{_builddir}
@@ -335,7 +339,10 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 
 # https://groups.google.com/a/chromium.org/d/msg/chromium-packagers/wuInaKJkosg/kMfIV_7wDgAJ
 rm -rf third_party/freetype/src
-git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 third_party/freetype/src
+git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 third_party/freetype/src 
+
+# xlocale.h is gone in F26/RAWHIDE
+sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
 
 
 ### build with widevine support
@@ -345,6 +352,7 @@ git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 t
 sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/widevine/cdm/stub/widevine_cdm_version.h"
 
 ./build/linux/unbundle/remove_bundled_libraries.py --do-remove \
+buildtools/third_party/libc++ \
     base/third_party/dmg_fp \
     base/third_party/dynamic_annotations \
     base/third_party/icu \
@@ -367,12 +375,12 @@ third_party/node/node_modules/vulcanize/third_party/UglifyJS2 \
     third_party/adobe \
     third_party/analytics \
 third_party/angle \
-    third_party/markupsafe \
-third_party/angle/src/common/third_party/numerics \
+third_party/angle/src/common/third_party/base \
+third_party/angle/src/common/third_party/murmurhash \
 third_party/angle/src/third_party/compiler \
 third_party/angle/src/third_party/libXNVCtrl \
-third_party/angle/src/third_party/murmurhash \
 third_party/angle/src/third_party/trace_event \
+    third_party/markupsafe \
     third_party/boringssl \
     third_party/brotli \
     third_party/cacheinvalidation \
@@ -432,7 +440,9 @@ third_party/lss \
     third_party/mesa \
     third_party/modp_b64 \
     third_party/mt19937ar \
+%if !%{with system_openh264}
     third_party/openh264 \
+%endif
 third_party/openmax_dl \
     third_party/opus \
     third_party/ots \
@@ -446,6 +456,7 @@ third_party/freetype \
     third_party/qcms \
     third_party/sfntly \
 third_party/skia \
+third_party/skia/third_party/vulkan \
     third_party/smhasher \
     third_party/speech-dispatcher \
     third_party/sqlite \
@@ -468,9 +479,6 @@ third_party/xdg-utils \
     third_party/blanketjs \
     third_party/qunit \
     url/third_party/mozilla \
-    third_party/swiftshader \
-    third_party/swiftshader/third_party/llvm-subzero \
-    third_party/swiftshader/third_party/subzero \
     third_party/pdfium \
     third_party/pdfium/third_party/agg23 \
     third_party/pdfium/third_party/base \
@@ -483,6 +491,7 @@ third_party/xdg-utils \
     third_party/pdfium/third_party/libtiff \
     third_party/googletest \
     third_party/glslang-angle \
+third_party/vulkan \
     third_party/vulkan-validation-layers \
     third_party/spirv-tools-angle \
     third_party/spirv-headers \
@@ -505,6 +514,9 @@ v8/src/third_party/valgrind
     libxml \
 %endif
     libxslt \
+%if %{with system_openh264}
+    openh264 \
+%endif
     re2 \
     snappy \
     yasm \
@@ -548,10 +560,14 @@ popd
 cd %{_builddir}/chromium-%{version}/
 
 %if %{with clang}
-export CC=clang CXX=clang++
+export CC=clang 
+export CXX=clang++
+%else
+export CC="gcc"
+export CXX="g++"
+%endif
 CXXFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
 CFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
-%endif
 
 
 _flags+=(
@@ -583,6 +599,7 @@ _flags+=(
     'enable_widevine=true'
     'enable_nacl=false'
     'enable_nacl_nonsfi=false'
+    'enable_swiftshader=false'
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
@@ -837,6 +854,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Fri Sep 15 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  61.0.3163.91-2
+- Updated to 61.0.3163.91
 
 * Wed Aug 30 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  60.0.3112.113-2
 - Updated to 60.0.3112.113
