@@ -135,6 +135,7 @@ Patch6:    chromium-ucontext-glibc226.patch
 Patch7:    chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 # Gtk2 FIX
 Patch8:    ca40720.diff
+Patch9:    issue2645593002_1.diff
 
 
 ExclusiveArch: i686 x86_64 armv7l
