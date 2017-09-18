@@ -214,7 +214,7 @@ BuildRequires: libappstream-glib
 BuildRequires: pam-devel
 BuildRequires: systemd
 # CLANG
-#if 0%{?clang}
+#if 0{?clang}
 %if %{with clang}
 BuildRequires: clang
 %endif
