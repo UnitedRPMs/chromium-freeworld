@@ -214,7 +214,8 @@ BuildRequires: libappstream-glib
 BuildRequires: pam-devel
 BuildRequires: systemd
 # CLANG
-%if 0%{?clang}
+#if 0%{?clang}
+%if %{with clang}
 BuildRequires: clang
 %endif
 # GTK3
@@ -572,7 +573,7 @@ CFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
 
 _flags+=(
     'is_debug=false'
-%if 0%{?clang}
+%if %{with clang}
     'is_clang=true' 
     'clang_base_path="/usr"'
     'clang_use_chrome_plugins=false'
