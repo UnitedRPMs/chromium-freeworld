@@ -1,4 +1,4 @@
-# This spec file is based on other spec files (for compatiblity) PKGBUILDs and EBUILDs available from
+# These spec file includes some tips and patches thanks to:
 #  [1] https://www.archlinux.org/packages/extra/x86_64/chromium/
 #  [2] https://packages.gentoo.org/packages/www-client/chromium
 #  [3] https://build.opensuse.org/package/show/openSUSE:Factory/chromium
@@ -29,22 +29,27 @@
 %global debug_package %{nil}
 %endif
 
-# Use clang compiler (downloaded binaries from google). Results in faster build and smaller chromium.
-#if 0
+%if 0
+%bcond_without system_libvpx
+%else
+%bcond_with system_libvpx
+%endif
+
+%if 0
 %bcond_without clang
-#else
-#bcond_with clang
-#endif
+%else
+%bcond_with clang
+%endif
 
 
-%if 0%{?fedora} < 26
+%if 0%{?fedora} < 28
 %bcond_without system_jinja2
 %else
 %bcond_with system_jinja2
 %endif
 
 # markupsafe
-%bcond_with system_markupsafe
+%bcond_without system_markupsafe
 
 
 # https://github.com/dabeaz/ply/issues/66
@@ -67,6 +72,9 @@
 %else
 %bcond_with system_harfbuzz
 %endif
+
+# Allow testing whether icu can be unbundled
+%bcond_with system_libicu
 
 # Allow building with symbols to ease debugging
 %bcond_with symbol
@@ -135,7 +143,6 @@ Patch6:    chromium-ucontext-glibc226.patch
 Patch7:    chromium-use-no-delete-null-pointer-checks-with-gcc.patch
 # Gtk2 FIX
 Patch8:    ca40720.diff
-Patch9:    chromium-mojo-dep.patch
 Patch10:   chromium-FORTIFY_SOURCE-r2.patch
 
 
@@ -147,7 +154,7 @@ BuildRequires: gcc >= 5.1.1-2
 %endif
 
 %if %{with clang} || %{with require_clang} 
-BuildRequires: clang
+BuildRequires: clang llvm
 %endif
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata
@@ -229,6 +236,9 @@ BuildRequires: libdrm-devel
 BuildRequires: mesa-libGL-devel
 # vulcan
 BuildRequires: vulkan-devel
+%if %{with system_libicu}
+BuildRequires: libicu-devel
+%endif
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
@@ -356,6 +366,9 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
 
 ./build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 buildtools/third_party/libc++ \
+%if !%{with system_libicu}
+    third_party/icu \
+%endif
     base/third_party/dmg_fp \
     base/third_party/dynamic_annotations \
     base/third_party/icu \
@@ -522,6 +535,9 @@ v8/src/third_party/valgrind
 %endif
     re2 \
     snappy \
+%if %{with system_libicu}
+    icu \
+%endif
     yasm \
     zlib
 
@@ -537,8 +553,10 @@ ln -s %{python2_sitelib}/jinja2 third_party/jinja2
 %endif
 
 %if %{with system_markupsafe}
-rmdir third_party/markupsafe && mkdir -p third_party/markupsafe
-ln -s %{python2_sitearch}/markupsafe third_party/markupsafe
+rm -rf third_party/markupsafe && mkdir -p third_party/
+pushd third_party/
+ln -sf %{python2_sitearch}/markupsafe/ markupsafe
+popd
 %endif
 
 %if %{with system_ply}
@@ -808,7 +826,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/chromedriver
 %{chromiumdir}/chrome-sandbox
 %endif
+%if !%{with system_libicu}
 %{chromiumdir}/icudtl.dat
+%endif
 
 #{chromiumdir}/nacl_helper
 #{chromiumdir}/nacl_helper_bootstrap
