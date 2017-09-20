@@ -368,10 +368,10 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
 buildtools/third_party/libc++ \
 %if !%{with system_libicu}
     third_party/icu \
+    base/third_party/icu/ \
 %endif
     base/third_party/dmg_fp \
     base/third_party/dynamic_annotations \
-    base/third_party/icu \
     base/third_party/libevent \
     base/third_party/nspr \
     base/third_party/superfasthash \
@@ -424,7 +424,6 @@ third_party/ffmpeg \
     third_party/google_input_tools/third_party/closure_library/third_party/closure \
     third_party/hunspell \
     third_party/iccjpeg \
-    third_party/icu \
 %if !%{with system_jinja2}
     third_party/jinja2 \
 %endif
@@ -608,6 +607,7 @@ _flags+=(
     'proprietary_codecs=true'
     'link_pulseaudio=true'
     'linux_use_bundled_binutils=false'
+    'use_custom_libcxx=false'
     'use_allocator="none"'
     'use_cups=true'
     'use_gconf=false'
@@ -638,15 +638,6 @@ _flags+=(
 %endif
 )
 
-if tc-is-cross-compiler; then
-		local -x AR=${BUILD_AR}
-		local -x CC=${BUILD_CC}
-		local -x CXX=${BUILD_CXX}
-		local -x NM=${BUILD_NM}
-		local -x CFLAGS=${BUILD_CFLAGS}
-		local -x CXXFLAGS=${BUILD_CXXFLAGS}
-		local -x LDFLAGS=${BUILD_LDFLAGS}
-	fi
 
 export PATH=%{_builddir}/tools/depot_tools/:"$PATH"
 
