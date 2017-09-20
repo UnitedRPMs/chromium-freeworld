@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 %if 0%{?fedora} >= 27
 %global debug_package %{nil}
@@ -326,7 +326,7 @@ Remote desktop support for google-chrome & chromium.
 %else
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
-%setup -T -D -n chromium-%{version} -p1
+%autosetup -T -D -n chromium-%{version} -p1
 %endif
 
 tar xJf %{S:998} -C %{_builddir}
