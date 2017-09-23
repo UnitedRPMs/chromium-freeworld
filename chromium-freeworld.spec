@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 %if 0%{?fedora} >= 27
 %global debug_package %{nil}
@@ -42,7 +42,7 @@
 %endif
 
 
-%if 0%{?fedora} < 28
+%if 0%{?fedora} < 26
 %bcond_without system_jinja2
 %else
 %bcond_with system_jinja2
