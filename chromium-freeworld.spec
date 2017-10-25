@@ -25,7 +25,7 @@
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
 %bcond_without normalsource
 
-%if 0%{?fedora} >= 27
+%if 0%{?fedora} >= 28
 %global debug_package %{nil}
 %endif
 
@@ -60,7 +60,7 @@
 %endif
 
 # Require libxml2 > 2.9.4 for XML_PARSE_NOXXE
-%if 0
+%if 0%{?fedora} >= 27
 %bcond_without system_libxml2
 %else
 %bcond_with system_libxml2
@@ -77,7 +77,7 @@
 %bcond_with system_libicu
 
 # Allow building with symbols to ease debugging
-%bcond_with symbol
+%bcond_without symbol
 
 # Allow disabling unconditional build dependency on clang
 %bcond_without require_clang
@@ -89,7 +89,7 @@
 %bcond_without system_openh264
 
 Name:       chromium-freeworld
-Version:    61.0.3163.91
+Version:    62.0.3202.62
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -120,31 +120,28 @@ Source11:   chromium-freeworld.desktop
 Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
-# Add a patch from Gentoo to fix ATK-related build failure
-# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=04322d0
-Patch0:    chromium-atk.patch
-# Add several patches from Fedora to fix build with GCC 7
-# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
-Patch1:    chromium-blink-fpermissive.patch
-# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=ce69059
-Patch2:    chromium-blink-gcc7.patch
-# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=04322d0
-Patch3:    chromium-gn-bootstrap.patch
 # Add a patch from Fedora to fix GN build
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
-Patch4:    chromium-last-commit-position.patch
+Patch0:    chromium-last-commit-position.patch
+# Add patches from Gentoo to fix GN build
+# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=199c924
+Patch1:    chromium-gn-bootstrap.patch
 # https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=c38ed01
-Patch5:    chromium-safe-math-gcc.patch
+Patch2:    chromium-safe-math-gcc.patch
+
+# Add several patches from Fedora to fix build with GCC 7
+# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
+Patch3:    chromium-blink-fpermissive.patch
 
 # Add a patch from Gentoo to fix build with GLIBC 2.26
 # https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=2901239
-Patch6:    chromium-ucontext-glibc226.patch
-# https://codereview.chromium.org/2310513002
-Patch7:    chromium-use-no-delete-null-pointer-checks-with-gcc.patch
-# Gtk2 FIX
-Patch8:    ca40720.diff
-Patch10:   chromium-FORTIFY_SOURCE-r2.patch
+Patch4:    chromium-ucontext-glibc226.patch
 
+# Don't include C++17 string_view header
+Patch5:    chromium-crc32c-disable-c++17.patch
+
+# GTK2 fix
+Patch6:    gtk2_fix.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -160,7 +157,7 @@ BuildRequires: clang llvm
 BuildRequires: ninja-build, bison, gperf, hwdata
 BuildRequires: libgcc(x86-32), glibc(x86-32), libatomic
 BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
-BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss)
+BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss), pkgconfig(gtk+-3.0)
 BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
 BuildRequires: pkgconfig(gnome-keyring-1)
@@ -190,15 +187,18 @@ BuildRequires: python2-ply
 %endif
 # replace_gn_files.py --system-libraries
 BuildRequires: flac-devel
-# replace_gn_files.py --system-libraries
-BuildRequires: flac-devel
 %if %{with system_harfbuzz}
 BuildRequires: harfbuzz-devel
 %endif
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: libpng-devel
+# Chromium requires libvpx 1.5.0 and some non-default options
+%if %{with system_libvpx}
+BuildRequires: libvpx-devel
+%endif
 BuildRequires: libwebp-devel
 BuildRequires: pkgconfig(libxslt)
+BuildRequires: opus-devel
 %if %{with system_libxml2}
 BuildRequires: pkgconfig(libxml-2.0)
 %endif
@@ -234,6 +234,7 @@ BuildRequires: git
 BuildRequires: nodejs
 BuildRequires: libdrm-devel
 BuildRequires: mesa-libGL-devel
+BuildRequires: mesa-libEGL-devel
 # vulcan
 BuildRequires: vulkan-devel
 %if %{with system_libicu}
@@ -332,7 +333,12 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
 
-%if %{with normalsource}
+%if %{with system_markupsafe}
+pushd third_party/
+rm -rf markupsafe/
+ln -sf %{python2_sitearch}/markupsafe/ markupsafe
+popd
+%else
 pushd third_party
 rm -rf markupsafe/
 git clone --depth 1 https://github.com/pallets/markupsafe.git 
@@ -342,8 +348,11 @@ popd
 %endif
 
 # node fix
-mkdir -p third_party/node/linux/node-linux-x64/bin
-ln -s /usr/bin/node third_party/node/linux/node-linux-x64/bin/node
+mkdir -p third_party/node/linux/node-linux-x64/bin/
+pushd third_party/node/linux/node-linux-x64/bin/
+rm -f node
+ln -sf /usr/bin/node node
+popd
 
 %if %{with remote_desktop}
 # Fix hardcoded path in remoting code
@@ -387,7 +396,6 @@ native_client/src/third_party/valgrind \
     net/third_party/mozilla_security_manager \
     net/third_party/nss \
     third_party/node \
-third_party/node/node_modules/vulcanize/third_party/UglifyJS2 \
     third_party/adobe \
     third_party/analytics \
 third_party/angle \
@@ -396,7 +404,6 @@ third_party/angle/src/common/third_party/murmurhash \
 third_party/angle/src/third_party/compiler \
 third_party/angle/src/third_party/libXNVCtrl \
 third_party/angle/src/third_party/trace_event \
-    third_party/markupsafe \
     third_party/boringssl \
     third_party/brotli \
     third_party/cacheinvalidation \
@@ -412,6 +419,7 @@ third_party/catapult/tracing/third_party/mannwhitneyu \
     third_party/ced \
     third_party/cld_2 \
     third_party/cld_3 \
+third_party/crc32c \
 third_party/cros_system_api \
     third_party/devscripts \
     third_party/dom_distiller_js \
@@ -437,11 +445,13 @@ third_party/ffmpeg \
 third_party/libsrtp \
     third_party/libudev \
     third_party/libusb \
+%if !%{with system_libvpx}
     third_party/libvpx \
     third_party/libvpx/source/libvpx/third_party/googletest \
     third_party/libvpx/source/libvpx/third_party/libwebm \
     third_party/libvpx/source/libvpx/third_party/libyuv \
     third_party/libvpx/source/libvpx/third_party/x86inc \
+%endif
     third_party/libwebm \
 %if %{with system_libxml2}
     third_party/libxml/chromium \
@@ -472,6 +482,8 @@ third_party/freetype \
     third_party/sfntly \
 third_party/skia \
 third_party/skia/third_party/vulkan \
+third_party/skia/third_party/gif \
+third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
     third_party/smhasher \
     third_party/speech-dispatcher \
     third_party/sqlite \
@@ -500,7 +512,7 @@ third_party/xdg-utils \
     third_party/pdfium/third_party/bigint \
     third_party/pdfium/third_party/build \
     third_party/pdfium/third_party/freetype \
-    third_party/pdfium/third_party/lcms2-2.6 \
+third_party/pdfium/third_party/lcms \
     third_party/pdfium/third_party/libopenjpeg20 \
     third_party/pdfium/third_party/libpng16 \
     third_party/pdfium/third_party/libtiff \
@@ -543,41 +555,34 @@ v8/src/third_party/valgrind
 ./build/download_nacl_toolchains.py --packages \
     nacl_x86_glibc,nacl_x86_newlib,pnacl_newlib,pnacl_translator sync --extract
 
-sed -i "s|'ninja'|'ninja-build'|" tools/gn/bootstrap/bootstrap.py
+
 sed -i 's|//third_party/usb_ids|/usr/share/hwdata|g' device/usb/BUILD.gn
+
+# Workaround build error caused by debugedit
+# https://bugzilla.redhat.com/show_bug.cgi?id=304121
+sed -i '/^#include/s|//|/|' \
+    third_party/webrtc/modules/audio_processing/utility/ooura_fft.cc \
+    third_party/webrtc/modules/audio_processing/utility/ooura_fft_sse2.cc
 
 %if %{with system_jinja2}
 rmdir third_party/jinja2 
 ln -s %{python2_sitelib}/jinja2 third_party/jinja2
 %endif
 
-%if %{with system_markupsafe}
-rm -rf third_party/markupsafe && mkdir -p third_party/
-pushd third_party/
-ln -sf %{python2_sitearch}/markupsafe/ markupsafe
-popd
-%endif
 
 %if %{with system_ply}
 rmdir third_party/ply
 ln -s %{python2_sitelib}/ply third_party/ply
 %endif
 
-mkdir -p native_client/toolchain/.tars/linux_x86
-touch native_client/toolchain/.tars/linux_x86/pnacl_translator.json
-
-pushd native_client/toolchain
-ln -s ../../out/Release/gen/sdk/linux_x86 linux_x86
-popd
-
-mkdir -p third_party/llvm-build/Release+Asserts/bin
-pushd third_party/llvm-build/Release+Asserts/bin
-ln -s /usr/bin/clang clang
-popd
-
 
 %build
 cd %{_builddir}/chromium-%{version}/
+export AR=ar NM=nm
+
+export CFLAGS="$(echo '%{__global_cflags}' | sed 's/-fexceptions//')"
+export CXXFLAGS="$(echo '%{?__global_cxxflags}%{!?__global_cxxflags:%{__global_cflags}}' | sed 's/-fexceptions//')"
+export LDFLAGS='%{__global_ldflags}'
 
 %if %{with clang}
 export CC=clang 
@@ -585,10 +590,8 @@ export CXX=clang++
 %else
 export CC="gcc"
 export CXX="g++"
+export CXXFLAGS="$CXXFLAGS -fno-delete-null-pointer-checks"
 %endif
-CXXFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
-CFLAGS+="-Wno-expansion-to-defined -fno-delete-null-pointer-checks"
-
 
 _flags+=(
     'is_debug=false'
@@ -599,6 +602,7 @@ _flags+=(
 %else
     'is_clang=false' 
 %endif
+    'exclude_unwind_tables=true'
     'fatal_linker_warnings=false'
     'treat_warnings_as_errors=false'
     'fieldtrial_testing_like_official_build=true'
@@ -868,6 +872,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Oct 18 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  62.0.3202.62-2
+- Updated to 62.0.3202.62
 
 * Fri Sep 15 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  61.0.3163.91-2
 - Updated to 61.0.3163.91
