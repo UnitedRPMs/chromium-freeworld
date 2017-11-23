@@ -89,7 +89,7 @@
 %bcond_without system_openh264
 
 Name:       chromium-freeworld
-Version:    62.0.3202.62
+Version:    62.0.3202.94
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -872,6 +872,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Tue Nov 21 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  62.0.3202.94-2
+- Updated to 62.0.3202.94
 
 * Wed Oct 18 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  62.0.3202.62-2
 - Updated to 62.0.3202.62
