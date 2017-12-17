@@ -67,11 +67,7 @@
 %endif
 
 # Require harfbuzz >= 1.4.2 for hb_variation_t
-%if 0%{?fedora} >= 26
-%bcond_without system_harfbuzz
-%else
 %bcond_with system_harfbuzz
-%endif
 
 # Allow testing whether icu can be unbundled
 %bcond_with system_libicu
@@ -88,8 +84,11 @@
 # In UnitedRPMs, we have openh264
 %bcond_without system_openh264
 
+# Now is easy to use the external ffmpeg; but we can't rebuild constantly chromium for ffmpeg; it takes hours building...
+%bcond_with system_ffmpeg
+
 Name:       chromium-freeworld
-Version:    62.0.3202.94
+Version:    63.0.3239.108
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -102,8 +101,6 @@ Vendor:     URPMS
 Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 %endif
 Source1:    chromium-latest.py
-Source2:    chromium-ffmpeg-clean.sh
-Source3:    chromium-ffmpeg-free-sources.py
 %if %{with remote_desktop}
 Source33:   chrome-remote-desktop.service
 %endif
@@ -123,25 +120,22 @@ Source13:   chromium-freeworld.appdata.xml
 # Add a patch from Fedora to fix GN build
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
 Patch0:    chromium-last-commit-position.patch
-# Add patches from Gentoo to fix GN build
-# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=199c924
-Patch1:    chromium-gn-bootstrap.patch
-# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=c38ed01
-Patch2:    chromium-safe-math-gcc.patch
+Patch1:    chromium-safe-math-gcc.patch
 
 # Add several patches from Fedora to fix build with GCC 7
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
-Patch3:    chromium-blink-fpermissive.patch
-
-# Add a patch from Gentoo to fix build with GLIBC 2.26
-# https://gitweb.gentoo.org/repo/gentoo.git/commit/?id=2901239
-Patch4:    chromium-ucontext-glibc226.patch
-
-# Don't include C++17 string_view header
-Patch5:    chromium-crc32c-disable-c++17.patch
+Patch2:    chromium-blink-fpermissive.patch
 
 # GTK2 fix
-Patch6:    gtk2_fix.patch
+Patch3:    gtk2_fix.patch
+
+# Thanks Gentoo
+Patch4:    chromium-webrtc-r0.patch
+Patch5:	   chromium-clang-r1.patch
+
+# Thanks openSuse
+Patch6:    chromium-prop-codecs.patch
+Patch7:    chromium-non-void-return.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -239,6 +233,10 @@ BuildRequires: mesa-libEGL-devel
 BuildRequires: vulkan-devel
 %if %{with system_libicu}
 BuildRequires: libicu-devel
+%endif
+# ffmpeg external conditional
+%if %{with system_ffmpeg}
+BuildRequires: ffmpeg-devel
 %endif
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
@@ -388,7 +386,6 @@ buildtools/third_party/libc++ \
     base/third_party/valgrind \
     base/third_party/xdg_mime \
     base/third_party/xdg_user_dirs \
-breakpad/src/third_party/curl \
     chrome/third_party/mozilla_security_manager \
     courgette/third_party \
 native_client/src/third_party/dlmalloc \
@@ -400,22 +397,26 @@ native_client/src/third_party/valgrind \
     third_party/analytics \
 third_party/angle \
 third_party/angle/src/common/third_party/base \
-third_party/angle/src/common/third_party/murmurhash \
+third_party/angle/src/common/third_party/smhasher \
 third_party/angle/src/third_party/compiler \
 third_party/angle/src/third_party/libXNVCtrl \
 third_party/angle/src/third_party/trace_event \
     third_party/boringssl \
+third_party/blink \
+third_party/breakpad \
+third_party/breakpad/breakpad/src/third_party/curl \
     third_party/brotli \
     third_party/cacheinvalidation \
 third_party/catapult \
+third_party/catapult/common/py_vulcanize/third_party/rcssmin  \
+third_party/catapult/common/py_vulcanize/third_party/rjsmin  \
 third_party/catapult/third_party/polymer \
-third_party/catapult/third_party/py_vulcanize \
-third_party/catapult/third_party/py_vulcanize/third_party/rcssmin \
-third_party/catapult/third_party/py_vulcanize/third_party/rjsmin \
 third_party/catapult/tracing/third_party/d3 \
 third_party/catapult/tracing/third_party/gl-matrix \
 third_party/catapult/tracing/third_party/jszip \
 third_party/catapult/tracing/third_party/mannwhitneyu \
+third_party/catapult/tracing/third_party/oboe \
+third_party/catapult/tracing/third_party/pako \
     third_party/ced \
     third_party/cld_2 \
     third_party/cld_3 \
@@ -462,6 +463,9 @@ third_party/libsrtp \
 third_party/libyuv \
 third_party/lss \
     third_party/lzma_sdk \
+%if !%{with system_markupsafe}
+third_party/markupsafe \
+%endif
     third_party/mesa \
     third_party/modp_b64 \
     third_party/mt19937ar \
@@ -522,13 +526,15 @@ third_party/vulkan \
     third_party/vulkan-validation-layers \
     third_party/spirv-tools-angle \
     third_party/spirv-headers \
-    third_party/catapult/tracing/third_party/oboe \
 %if !%{with system_harfbuzz}
     third_party/harfbuzz-ng \
 %endif
 v8/src/third_party/valgrind 
 
 ./build/linux/unbundle/replace_gn_files.py --system-libraries \
+%if %{with system_ffmpeg}
+    ffmpeg \
+%endif
     flac \
     libdrm \
 %if %{with system_harfbuzz}
@@ -577,6 +583,26 @@ ln -s %{python2_sitelib}/ply third_party/ply
 
 
 %build
+
+# some still call gcc/g++
+%if %{with clang}
+export CC=clang 
+export CXX=clang++
+%endif
+mkdir -p "$HOME/bin/"
+ln -sfn /usr/bin/$CC $HOME/bin/gcc
+ln -sfn /usr/bin/$CXX $HOME/bin/g++
+export PATH="$HOME/bin/:$PATH"
+
+# Re-configure bundled ffmpeg.
+		echo "Configuring bundled ffmpeg..."
+		pushd third_party/ffmpeg 
+		chromium/scripts/build_ffmpeg.py linux x64 \
+			--branding Chrome  
+		chromium/scripts/copy_config.sh 
+		chromium/scripts/generate_gn.py 
+		popd 
+
 cd %{_builddir}/chromium-%{version}/
 export AR=ar NM=nm
 
@@ -690,7 +716,7 @@ desktop-file-install --dir=%{buildroot}%{_datadir}/applications %{SOURCE11}
 install -m 644 %{SOURCE12} %{buildroot}%{_datadir}/gnome-control-center/default-apps/
 appstream-util validate-relax --nonet %{SOURCE13}
 install -m 644 %{SOURCE13} %{buildroot}%{_datadir}/appdata/
-install -m 644 out/Release/chrome.1 %{buildroot}%{_mandir}/man1/%{name}.1
+## install -m 644 out/Release/chrome.1 {buildroot}{_mandir}/man1/{name}.1
 install -m 755 out/Release/chrome %{buildroot}%{chromiumdir}/chromium
 
 %if %{with devel_tools}
@@ -701,11 +727,6 @@ ln -s %{chromiumdir}/chromedriver %{buildroot}%{_bindir}/%{name}-chromedriver
 
 # libicu
 install -m 644 out/Release/icudtl.dat %{buildroot}%{chromiumdir}/
-
-# nacl
-#install -m 755 out/Release/nacl_helper %{buildroot}%{chromiumdir}/
-#install -m 755 out/Release/nacl_helper_bootstrap %{buildroot}%{chromiumdir}/
-#install -m 644 out/Release/nacl_irt_x86_64.nexe %{buildroot}%{chromiumdir}/
 
 install -m 644 out/Release/natives_blob.bin %{buildroot}%{chromiumdir}/
 install -m 644 out/Release/snapshot_blob.bin %{buildroot}%{chromiumdir}/
@@ -814,7 +835,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_datadir}/icons/hicolor/64x64/apps/chromium.png
 %{_datadir}/icons/hicolor/128x128/apps/chromium.png
 %{_datadir}/icons/hicolor/256x256/apps/chromium.png
-%{_mandir}/man1/%{name}.1.gz
+##{_mandir}/man1/{name}.1.gz
 %dir %{chromiumdir}
 %{chromiumdir}/chromium
 %if %{with devel_tools}
@@ -824,10 +845,6 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %if !%{with system_libicu}
 %{chromiumdir}/icudtl.dat
 %endif
-
-#{chromiumdir}/nacl_helper
-#{chromiumdir}/nacl_helper_bootstrap
-#{chromiumdir}/nacl_irt_x86_64.nexe
 
 %{chromiumdir}/natives_blob.bin
 %{chromiumdir}/snapshot_blob.bin
@@ -872,6 +889,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Dec 14 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  63.0.3239.108-2
+- Updated to 63.0.3239.108
 
 * Tue Nov 21 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  62.0.3202.94-2
 - Updated to 62.0.3202.94

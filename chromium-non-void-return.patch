@@ -1,0 +1,12 @@
+Index: chromium-63.0.3239.30/chrome/browser/ui/libgtkui/app_indicator_icon.cc
+===================================================================
+--- chromium-63.0.3239.30.orig/chrome/browser/ui/libgtkui/app_indicator_icon.cc
++++ chromium-63.0.3239.30/chrome/browser/ui/libgtkui/app_indicator_icon.cc
+@@ -97,6 +97,8 @@ bool ShouldUseLibAppIndicator() {
+     case base::nix::DESKTOP_ENVIRONMENT_OTHER:
+     case base::nix::DESKTOP_ENVIRONMENT_XFCE:
+       return false;
++    default:
++      return false;
+   }
+ }
