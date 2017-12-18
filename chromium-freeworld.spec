@@ -84,8 +84,8 @@
 # In UnitedRPMs, we have openh264
 %bcond_without system_openh264
 
-# Now is easy to use the external ffmpeg; but we can't rebuild constantly chromium for ffmpeg; it takes hours building...
-%bcond_with system_ffmpeg
+# Now is easy to use the external ffmpeg...
+%bcond_without system_ffmpeg
 
 Name:       chromium-freeworld
 Version:    63.0.3239.108
