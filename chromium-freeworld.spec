@@ -87,6 +87,10 @@
 # Now is easy to use the external ffmpeg...
 %bcond_without system_ffmpeg
 
+# Jumbo / Unity builds
+# https://chromium.googlesource.com/chromium/src/+/lkcr/docs/jumbo.md
+%bcond_without jumbo_unity
+
 Name:       chromium-freeworld
 Version:    63.0.3239.108
 Release:    2%{?dist}
@@ -270,7 +274,9 @@ your profile before changing channels.
 
 %package libs
 Summary: Shared libraries used by chromium (and chrome-remote-desktop)
+%if !%{with system_ffmpeg}
 Requires: %{name}-libs-media%{_isa} = %{version}-%{release}
+%endif
 Provides: %{name}-libs%{_isa} = %{version}-%{release}
 Provides: chromium-libs >= 54
 
@@ -291,6 +297,7 @@ implements WebDriver's wire protocol for Chromium. It is being developed by
 members of the Chromium and WebDriver teams.
 %endif
 
+%if !%{with system_ffmpeg}
 %package libs-media
 Summary: Chromium media libraries built with all possible codecs
 Provides: %{name}-libs-media%{_isa} = %{version}-%{release}
@@ -303,6 +310,7 @@ Chromium media libraries built with all possible codecs. Chromium is an
 open-source web browser, powered by WebKit (Blink). This package replaces
 the default chromium-libs-media package, which is limited in what it
 can include.
+%endif
 
 %if %{with remote_desktop}
 %package -n chrome-remote-desktop
@@ -660,6 +668,9 @@ _flags+=(
     'is_component_ffmpeg=true' 
     'is_component_build=false'
     'symbol_level=0'
+%if %{with jumbo_unity}
+    'use_jumbo_build=true'
+%endif
     'remove_webcore_debug_symbols=true'
 %if %{with _gtk3}
     'use_gtk3=true'
@@ -867,9 +878,11 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/chromedriver
 %endif
 
+%if !%{with system_ffmpeg}
 %files libs-media
 %{chromiumdir}/libffmpeg.so*
 # {chromiumdir}/libmedia.so*
+%endif
 
 %if %{with remote_desktop}
 %files -n chrome-remote-desktop
