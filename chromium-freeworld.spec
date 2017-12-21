@@ -302,8 +302,8 @@ members of the Chromium and WebDriver teams.
 Summary: Chromium media libraries built with all possible codecs
 Provides: %{name}-libs-media%{_isa} = %{version}-%{release}
 Provides: libffmpeg.so()(64bit)
-Provides: chromium-libs-media-freeworld >= 54
-Provides: chromium-libs-media >= 54
+Provides: chromium-libs-media-freeworld = %{version}
+
 
 %description libs-media
 Chromium media libraries built with all possible codecs. Chromium is an
@@ -691,22 +691,19 @@ export PATH=%{_builddir}/tools/depot_tools/:"$PATH"
 jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 
 %if %{with devel_tools}
-%if 0%{?ninja_build:1}
-echo 'first attemp'
+%if %{with system_ffmpeg}
+ninja-build -C out/Release media/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+%else
 ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
-%else
-echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
 %endif
 %else
-%if 0%{?ninja_build:1}
-echo 'first attemp'
+%if %{with system_ffmpeg}
+ninja-build -C out/Release media/ffmpeg chrome widevinecdmadapter -j$jobs
+%else
 ninja-build -C out/Release chrome widevinecdmadapter -j$jobs
-%else
-echo 'second attemp'
-ninja-build %{_smp_mflags} -C out/Release chrome widevinecdmadapter -j$jobs
 %endif
- %endif
+%endif
+
 
 %if %{with remote_desktop}
 ninja-build -C out/Release remoting_all -j$jobs
