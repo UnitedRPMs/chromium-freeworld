@@ -92,7 +92,7 @@
 %bcond_without jumbo_unity
 
 Name:       chromium-freeworld
-Version:    63.0.3239.108
+Version:    63.0.3239.132
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -366,8 +366,8 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 %endif
 
 # https://groups.google.com/a/chromium.org/d/msg/chromium-packagers/wuInaKJkosg/kMfIV_7wDgAJ
-rm -rf third_party/freetype/src
-git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 third_party/freetype/src 
+#rm -rf third_party/freetype/src
+#git clone https://chromium.googlesource.com/chromium/src/third_party/freetype2 third_party/freetype/src 
 
 # xlocale.h is gone in F26/RAWHIDE
 sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
@@ -899,6 +899,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Tue Jan 09 2018 - David Vasquez <davidjeremias82 AT gmail DOT com>  63.0.3239.132-2
+- Updated to 63.0.3239.132
 
 * Thu Dec 14 2017 - David Vasquez <davidjeremias82 AT gmail DOT com>  63.0.3239.108-2
 - Updated to 63.0.3239.108
