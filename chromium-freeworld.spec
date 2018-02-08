@@ -356,8 +356,6 @@ sed -i 's@gpu//@gpu/@g' content/renderer/gpu/compositor_forwarding_message_filte
 sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/audio_processing/utility/ooura_fft.cc
 sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/audio_processing/utility/ooura_fft_sse2.cc
 
-# Use Python 2
-find ./ -type f -exec sed -i 's|/usr/bin/env python|/usr/bin/env python2|g' {} \;
 
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
