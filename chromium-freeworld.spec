@@ -28,19 +28,9 @@
 
 %global debug_package %{nil}
 
-
-%if 0
-%bcond_without system_libvpx
-%else
 %bcond_with system_libvpx
-%endif
 
-%if 0
 %bcond_without clang
-%else
-%bcond_with clang
-%endif
-
 
 %if 0%{?fedora} < 26
 %bcond_without system_jinja2
@@ -49,7 +39,7 @@
 %endif
 
 # markupsafe
-%bcond_without system_markupsafe
+%bcond_with system_markupsafe
 
 
 # https://github.com/dabeaz/ply/issues/66
@@ -78,8 +68,8 @@
 # Allow disabling unconditional build dependency on clang
 %bcond_without require_clang
 
-# Chromium breaks on wayland, hidpi, and colors with gtk3 enabled.
-%bcond_with _gkt3
+# Gtk conditional
+%bcond_without _gtk3
 
 # In UnitedRPMs, we have openh264
 %bcond_without system_openh264
@@ -92,7 +82,7 @@
 %bcond_without jumbo_unity
 
 Name:       chromium-freeworld
-Version:    63.0.3239.132
+Version:    64.0.3282.140
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -124,22 +114,43 @@ Source13:   chromium-freeworld.appdata.xml
 # Add a patch from Fedora to fix GN build
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
 Patch0:    chromium-last-commit-position.patch
-Patch1:    chromium-safe-math-gcc.patch
 
 # Add several patches from Fedora to fix build with GCC 7
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
-Patch2:    chromium-blink-fpermissive.patch
+Patch1:    chromium-blink-fpermissive.patch
+
+# GCC and Clang fixes
+Patch2:   chromium-64.0.3282.119-gcc7.patch
+Patch3:   chromium-64.0.3282.119-gcc-round-fix.patch
 
 # GTK2 fix
-Patch3:    gtk2_fix.patch
-
-# Thanks Gentoo
-Patch4:    chromium-webrtc-r0.patch
-Patch5:	   chromium-clang-r1.patch
+Patch4:    chromium-clang-r2.patch
+%if !%{with _gtk3}
+Patch5:    gtk2.patch
+%endif
 
 # Thanks openSuse
 Patch6:    chromium-prop-codecs.patch
 Patch7:    chromium-non-void-return.patch
+
+# Thanks Debian
+# Fix warnings
+Patch8:    comment.patch   
+Patch9:    enum-boolean.patch		
+Patch10:   unused-typedefs.patch
+# Fix gn
+Patch11:   buildflags.patch
+Patch12:   narrowing.patch
+# fixes
+Patch13:   optimize.patch
+Patch14:   gpu-timeout.patch
+
+# Thanks Gentoo
+Patch15:   chromium-angle.patch
+Patch16:   chromium-memcpy-r0.patch
+Patch17:   chromium-gn-r0.patch
+
+
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -155,7 +166,12 @@ BuildRequires: clang llvm
 BuildRequires: ninja-build, bison, gperf, hwdata
 BuildRequires: libgcc(x86-32), glibc(x86-32), libatomic
 BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
-BuildRequires: pkgconfig(gtk+-2.0), pkgconfig(libexif), pkgconfig(nss), pkgconfig(gtk+-3.0)
+BuildRequires: pkgconfig(libexif), pkgconfig(nss), 
+%if %{with _gtk3}
+BuildRequires: pkgconfig(gtk+-3.0)
+%else
+BuildRequires: pkgconfig(gtk+-2.0)
+%endif
 BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
 BuildRequires: pkgconfig(gnome-keyring-1)
@@ -224,9 +240,7 @@ BuildRequires: systemd
 #if 0{?clang}
 %if %{with clang}
 BuildRequires: clang
-%endif
-# GTK3
-BuildRequires: pkgconfig(gtk+-3.0) 
+%endif 
 # markupsafe missed
 BuildRequires: git
 BuildRequires: nodejs
@@ -242,6 +256,7 @@ BuildRequires: libicu-devel
 %if %{with system_ffmpeg}
 BuildRequires: ffmpeg-devel
 %endif
+BuildRequires:	libva-devel 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
@@ -336,6 +351,14 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %autosetup -T -D -n chromium-%{version} -p1
 %endif
 
+# fix debugedit: canonicalization unexpectedly shrank by one character
+sed -i 's@gpu//@gpu/@g' content/renderer/gpu/compositor_forwarding_message_filter.cc
+sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/audio_processing/utility/ooura_fft.cc
+sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/audio_processing/utility/ooura_fft_sse2.cc
+
+# Use Python 2
+  find . -name '*.py' -exec sed -i -r 's|/usr/bin/python$|&2|g' {} +
+
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
 
@@ -371,7 +394,6 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 
 # xlocale.h is gone in F26/RAWHIDE
 sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
-
 
 ### build with widevine support
 
@@ -410,6 +432,7 @@ third_party/angle/src/third_party/compiler \
 third_party/angle/src/third_party/libXNVCtrl \
 third_party/angle/src/third_party/trace_event \
     third_party/boringssl \
+    third_party/boringssl/src/third_party/fiat \
 third_party/blink \
 third_party/breakpad \
 third_party/breakpad/breakpad/src/third_party/curl \
@@ -426,7 +449,6 @@ third_party/catapult/tracing/third_party/mannwhitneyu \
 third_party/catapult/tracing/third_party/oboe \
 third_party/catapult/tracing/third_party/pako \
     third_party/ced \
-    third_party/cld_2 \
     third_party/cld_3 \
 third_party/crc32c \
 third_party/cros_system_api \
@@ -475,6 +497,7 @@ third_party/lss \
 third_party/markupsafe \
 %endif
     third_party/mesa \
+    third_party/metrics_proto \
     third_party/modp_b64 \
     third_party/mt19937ar \
 %if !%{with system_openh264}
@@ -574,7 +597,8 @@ sed -i 's|//third_party/usb_ids|/usr/share/hwdata|g' device/usb/BUILD.gn
 
 # Workaround build error caused by debugedit
 # https://bugzilla.redhat.com/show_bug.cgi?id=304121
-sed -i '/^#include/s|//|/|' \
+sed -i "/relpath/s|/'$|'|" tools/metrics/ukm/gen_builders.py
+sed -i 's|^\(#include "[^"]*\)//\([^"]*"\)|\1/\2|' \
     third_party/webrtc/modules/audio_processing/utility/ooura_fft.cc \
     third_party/webrtc/modules/audio_processing/utility/ooura_fft_sse2.cc
 
@@ -590,11 +614,20 @@ ln -s %{python2_sitelib}/ply third_party/ply
 %endif
 
 
+# Remove compiler flags not supported by our system clang
+  sed -i \
+    -e '/"-Wno-enum-compare-switch"/d' \
+    -e '/"-Wno-null-pointer-arithmetic"/d' \
+    -e '/"-Wno-tautological-unsigned-zero-compare"/d' \
+    -e '/"-Wno-tautological-constant-compare"/d' \
+    build/config/compiler/BUILD.gn
+
+
 %build
 
 # some still call gcc/g++
 %if %{with clang}
-export CC=clang 
+export CC=clang
 export CXX=clang++
 %endif
 mkdir -p "$HOME/bin/"
@@ -602,24 +635,11 @@ ln -sfn /usr/bin/$CC $HOME/bin/gcc
 ln -sfn /usr/bin/$CXX $HOME/bin/g++
 export PATH="$HOME/bin/:$PATH"
 
-# Re-configure bundled ffmpeg.
-		echo "Configuring bundled ffmpeg..."
-		pushd third_party/ffmpeg 
-		chromium/scripts/build_ffmpeg.py linux x64 \
-			--branding Chrome  
-		chromium/scripts/copy_config.sh 
-		chromium/scripts/generate_gn.py 
-		popd 
 
-cd %{_builddir}/chromium-%{version}/
 export AR=ar NM=nm
 
-export CFLAGS="$(echo '%{__global_cflags}' | sed 's/-fexceptions//')"
-export CXXFLAGS="$(echo '%{?__global_cxxflags}%{!?__global_cxxflags:%{__global_cflags}}' | sed 's/-fexceptions//')"
-export LDFLAGS='%{__global_ldflags}'
-
 %if %{with clang}
-export CC=clang 
+export CC=clang
 export CXX=clang++
 %else
 export CC="gcc"
@@ -636,7 +656,6 @@ _flags+=(
 %else
     'is_clang=false' 
 %endif
-    'exclude_unwind_tables=true'
     'fatal_linker_warnings=false'
     'treat_warnings_as_errors=false'
     'fieldtrial_testing_like_official_build=true'
@@ -646,19 +665,23 @@ _flags+=(
     'link_pulseaudio=true'
     'linux_use_bundled_binutils=false'
     'use_custom_libcxx=false'
+    'use_lld=false'
+    'use_debug_fission=false'
     'use_allocator="none"'
     'use_cups=true'
     'use_gconf=false'
     'use_gnome_keyring=false'
+    'use_gio=true'
     'use_gold=false'
     'use_kerberos=true'
     'use_pulseaudio=true'
+    'use_system_freetype=true'
     'use_sysroot=false'
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
     'enable_nacl=false'
-    'enable_nacl_nonsfi=false'
     'enable_swiftshader=false'
+    'enable_webrtc=true'
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
@@ -670,6 +693,7 @@ _flags+=(
     'symbol_level=0'
 %if %{with jumbo_unity}
     'use_jumbo_build=true'
+    'jumbo_file_merge_limit=100'
 %endif
     'remove_webcore_debug_symbols=true'
 %if %{with _gtk3}
@@ -692,15 +716,15 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 
 %if %{with devel_tools}
 %if %{with system_ffmpeg}
-ninja-build -C out/Release media/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+ninja-build -C out/Release media/ffmpeg chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs 
 %else
-ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter -j$jobs 
 %endif
 %else
 %if %{with system_ffmpeg}
-ninja-build -C out/Release media/ffmpeg chrome widevinecdmadapter -j$jobs
+ninja-build -C out/Release media/ffmpeg chrome widevinecdmadapter -j$jobs 
 %else
-ninja-build -C out/Release chrome widevinecdmadapter -j$jobs
+ninja-build -C out/Release chrome widevinecdmadapter -j$jobs 
 %endif
 %endif
 
@@ -770,6 +794,7 @@ cp -a out/Release/remote_assistance_host %{buildroot}%{crd_path}/remote-assistan
 cp -a out/Release/remoting_locales %{buildroot}%{crd_path}/
 cp -a out/Release/remoting_me2me_host %{buildroot}%{crd_path}/chrome-remote-desktop-host
 cp -a out/Release/remoting_start_host %{buildroot}%{crd_path}/start-host
+cp -a out/Release/remoting_user_session %{buildroot}%{crd_path}/user-session
 
 # chromium
 mkdir -p %{buildroot}%{_sysconfdir}/chromium/remoting_native_messaging_host
@@ -894,11 +919,15 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_sysconfdir}/opt/chrome/
 %{crd_path}/remoting_locales/
 %{crd_path}/start-host
+%{crd_path}/user-session
 %{_unitdir}/chrome-remote-desktop.service
 /var/lib/chrome-remote-desktop/
 %endif
 
 %changelog
+
+* Thu Feb 01 2018 - David Vasquez <davidjeremias82 AT gmail DOT com>  64.0.3282.140-2
+- Updated to 64.0.3282.140
 
 * Tue Jan 09 2018 - David Vasquez <davidjeremias82 AT gmail DOT com>  63.0.3239.132-2
 - Updated to 63.0.3239.132

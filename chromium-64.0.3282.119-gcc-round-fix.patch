@@ -1,0 +1,12 @@
+diff -up chromium-64.0.3282.119/third_party/webrtc/p2p/base/port.cc.gcc-round-fix chromium-64.0.3282.119/third_party/webrtc/p2p/base/port.cc
+--- chromium-64.0.3282.119/third_party/webrtc/p2p/base/port.cc.gcc-round-fix	2018-01-25 12:03:14.696443814 -0500
++++ chromium-64.0.3282.119/third_party/webrtc/p2p/base/port.cc	2018-01-25 12:20:26.446448618 -0500
+@@ -10,7 +10,7 @@
+ 
+ #include "p2p/base/port.h"
+ 
+-#include <math.h>
++#include <cmath>
+ 
+ #include <algorithm>
+ #include <vector>
