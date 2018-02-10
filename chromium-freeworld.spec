@@ -395,7 +395,7 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
 
 # /usr/bin/python will be removed or switched to Python 3 in the future f28
-sed -i 's|/usr/bin/env python|/usr/bin/env python2|g' build/linux/unbundle/remove_bundled_libraries.py
+find . -name "*.py" |xargs sed -i 's|/usr/bin/env python|/usr/bin/env python2|g'
 
 # https://fedoraproject.org/wiki/Changes/Avoid_usr_bin_python_in_RPM_Build#Quick_Opt-Out
 export PYTHON_DISALLOW_AMBIGUOUS_VERSION=0
@@ -630,6 +630,9 @@ ln -s %{python2_sitelib}/ply third_party/ply
 
 
 %build
+
+# https://fedoraproject.org/wiki/Changes/Avoid_usr_bin_python_in_RPM_Build#Quick_Opt-Out
+export PYTHON_DISALLOW_AMBIGUOUS_VERSION=0
 
 # some still call gcc/g++
 %if %{with clang}
