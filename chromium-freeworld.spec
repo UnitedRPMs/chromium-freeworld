@@ -82,7 +82,7 @@
 %bcond_without jumbo_unity
 
 Name:       chromium-freeworld
-Version:    64.0.3282.140
+Version:    65.0.3325.181
 Release:    2%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -119,38 +119,38 @@ Patch0:    chromium-last-commit-position.patch
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
 Patch1:    chromium-blink-fpermissive.patch
 
-# GCC and Clang fixes
-Patch2:   chromium-64.0.3282.119-gcc7.patch
-Patch3:   chromium-64.0.3282.119-gcc-round-fix.patch
-
 # GTK2 fix
-Patch4:    chromium-clang-r2.patch
 %if !%{with _gtk3}
-Patch5:    gtk2.patch
+Patch2:    gtk2.patch
 %endif
 
 # Thanks openSuse
-Patch6:    chromium-prop-codecs.patch
-Patch7:    chromium-non-void-return.patch
+Patch3:    chromium-prop-codecs.patch
+Patch4:    chromium-non-void-return.patch
 
 # Thanks Debian
 # Fix warnings
-Patch8:    comment.patch   
-Patch9:    enum-boolean.patch		
-Patch10:   unused-typedefs.patch
+Patch5:    comment.patch   
+Patch6:    enum-boolean.patch		
+Patch7:    unused-typedefs.patch
 # Fix gn
-Patch11:   buildflags.patch
-Patch12:   narrowing.patch
+Patch8:    buildflags.patch
+Patch9:    narrowing.patch
 # fixes
-Patch13:   optimize.patch
-Patch14:   gpu-timeout.patch
+Patch10:   optimize.patch
+Patch11:   gpu-timeout.patch
 
 # Thanks Gentoo
-Patch15:   chromium-angle.patch
-Patch16:   chromium-memcpy-r0.patch
-Patch17:   chromium-gn-r0.patch
+Patch12:   chromium-clang-r2.patch
+Patch13:   chromium-math.h-r0.patch
+Patch14:   chromium-stdint.patch
+Patch17:   chromium-clang-r3.patch
 
+# Thanks to Daniel Bratell (Opera team)
+Patch15:   kCrlfLineEnding.patch
 
+# More buffer padding is used by ffmpeg 3.5
+Patch16:   ffmpeg.patch
 
 ExclusiveArch: i686 x86_64 armv7l
 
@@ -258,6 +258,7 @@ BuildRequires: libicu-devel
 BuildRequires: ffmpeg-devel
 %endif
 BuildRequires:	libva-devel 
+BuildRequires:  pkgconfig(libtcmalloc)
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
@@ -395,7 +396,8 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
 
 # /usr/bin/python will be removed or switched to Python 3 in the future f28
-find . -name "*.py" |xargs sed -i 's|/usr/bin/env python|/usr/bin/env python2|g'
+#find . -name "*.py" |xargs sed -i 's|/usr/bin/env python|/usr/bin/env python2|g'
+find . -name '*.py' -exec sed -i -r 's|/usr/bin/python$|&2|g' {} +
 
 # https://fedoraproject.org/wiki/Changes/Avoid_usr_bin_python_in_RPM_Build#Quick_Opt-Out
 export PYTHON_DISALLOW_AMBIGUOUS_VERSION=0
@@ -460,6 +462,8 @@ third_party/cros_system_api \
     third_party/devscripts \
     third_party/dom_distiller_js \
 third_party/ffmpeg \
+third_party/fontconfig \
+third_party/s2cellid \
     third_party/fips181 \
     third_party/flatbuffers \
     third_party/flot \
@@ -565,9 +569,10 @@ third_party/vulkan \
 %if !%{with system_harfbuzz}
     third_party/harfbuzz-ng \
 %endif
+v8/src/third_party/utf8-decoder \
 v8/src/third_party/valgrind 
 
-./build/linux/unbundle/replace_gn_files.py --system-libraries \
+python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %if %{with system_ffmpeg}
     ffmpeg \
 %endif
@@ -594,7 +599,7 @@ v8/src/third_party/valgrind
     yasm \
     zlib
 
-./build/download_nacl_toolchains.py --packages \
+python2 build/download_nacl_toolchains.py --packages \
     nacl_x86_glibc,nacl_x86_newlib,pnacl_newlib,pnacl_translator sync --extract
 
 
@@ -626,6 +631,8 @@ ln -s %{python2_sitelib}/ply third_party/ply
     -e '/"-Wno-tautological-unsigned-zero-compare"/d' \
     -e '/"-Wno-tautological-constant-compare"/d' \
     -e '/"-Wno-unused-lambda-capture"/d' \
+    -e '/"-Wunused-lambda-capture"/d' \
+    -e '/"-Wunused-lambda-capture"/d' \
     build/config/compiler/BUILD.gn
 
 
@@ -678,7 +685,6 @@ _flags+=(
     'use_debug_fission=false'
     'use_allocator="none"'
     'use_cups=true'
-    'use_gconf=false'
     'use_gnome_keyring=false'
     'use_gio=true'
     'use_gold=false'
@@ -934,6 +940,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Mar 21 2018 - David Vasquez <davidjeremias82 AT gmail DOT com>  65.0.3325.181-2
+- Updated to 65.0.3325.181
 
 * Thu Feb 01 2018 - David Vasquez <davidjeremias82 AT gmail DOT com>  64.0.3282.140-2
 - Updated to 64.0.3282.140

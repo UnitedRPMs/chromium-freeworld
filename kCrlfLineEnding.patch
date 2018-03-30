@@ -1,0 +1,52 @@
+diff --git a/third_party/WebKit/Source/platform/mhtml/MHTMLArchive.cpp b/third_party/WebKit/Source/platform/mhtml/MHTMLArchive.cpp
+index 16a7882..889d740 100644
+--- a/third_party/WebKit/Source/platform/mhtml/MHTMLArchive.cpp
++++ b/third_party/WebKit/Source/platform/mhtml/MHTMLArchive.cpp
+@@ -51,7 +51,6 @@
+ namespace {
+ 
+ const size_t kMaximumLineLength = 76;
+-const char kCrlfLineEnding[] = "\r\n";
+ 
+ const char kRFC2047EncodingPrefix[] = "=?utf-8?Q?";
+ const size_t kRFC2047EncodingPrefixLength = 10;
+@@ -86,7 +85,7 @@
+   void DidFinishLine(bool last_line, Vector<char>& out) override {
+     if (!last_line) {
+       out.push_back('=');
+-      out.Append(kCrlfLineEnding, strlen(kCrlfLineEnding));
++      out.Append("\r\n", 2);
+     }
+   }
+ };
+@@ -115,7 +114,7 @@
+   void DidFinishLine(bool last_line, Vector<char>& out) override {
+     out.Append(kRFC2047EncodingSuffix, kRFC2047EncodingSuffixLength);
+     if (!last_line) {
+-      out.Append(kCrlfLineEnding, strlen(kCrlfLineEnding));
++      out.Append("\r\n", 2);
+       out.push_back(' ');
+     }
+   }
+diff --git a/third_party/WebKit/Source/platform/text/QuotedPrintable.cpp b/third_party/WebKit/Source/platform/text/QuotedPrintable.cpp
+index 9f80140..9a7e7d5 100644
+--- a/third_party/WebKit/Source/platform/text/QuotedPrintable.cpp
++++ b/third_party/WebKit/Source/platform/text/QuotedPrintable.cpp
+@@ -34,8 +34,6 @@
+ 
+ namespace blink {
+ 
+-static const char kCrlfLineEnding[] = "\r\n";
+-
+ static size_t LengthOfLineEndingAtIndex(const char* input,
+                                         size_t input_length,
+                                         size_t index) {
+@@ -84,7 +82,7 @@
+       size_t length_of_line_ending =
+           LengthOfLineEndingAtIndex(input, input_length, i);
+       if (length_of_line_ending) {
+-        out.Append(kCrlfLineEnding, strlen(kCrlfLineEnding));
++        out.Append("\r\n", 2);
+         current_line_length = 0;
+         i += (length_of_line_ending -
+               1);  // -1 because we'll ++ in the for() above.
