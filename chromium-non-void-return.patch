@@ -1,12 +1,14 @@
-Index: chromium-63.0.3239.30/chrome/browser/ui/libgtkui/app_indicator_icon.cc
+Index: chromium-65.0.3325.146/media/gpu/vaapi/vaapi_wrapper.cc
 ===================================================================
---- chromium-63.0.3239.30.orig/chrome/browser/ui/libgtkui/app_indicator_icon.cc
-+++ chromium-63.0.3239.30/chrome/browser/ui/libgtkui/app_indicator_icon.cc
-@@ -97,6 +97,8 @@ bool ShouldUseLibAppIndicator() {
-     case base::nix::DESKTOP_ENVIRONMENT_OTHER:
-     case base::nix::DESKTOP_ENVIRONMENT_XFCE:
-       return false;
+--- chromium-65.0.3325.146.orig/media/gpu/vaapi/vaapi_wrapper.cc
++++ chromium-65.0.3325.146/media/gpu/vaapi/vaapi_wrapper.cc
+@@ -350,6 +350,8 @@ static VAEntrypoint GetVaEntryPoint(Vaap
+     case VaapiWrapper::kCodecModeMax:
+       NOTREACHED();
+       return VAEntrypointVLD;
 +    default:
-+      return false;
++      return 0;
    }
  }
+ 
+
