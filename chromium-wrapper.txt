@@ -132,6 +132,6 @@ if [ $want_debug -eq 1 ] ; then
   $GDB "$LIBDIR/$APPNAME" -x $tmpfile
   exit $?
 else
-  exec $LIBDIR/$APPNAME $SANDBOX ${CHROMIUM_FLAGS} ${PEPPERFLASH} "--password-store=basic" "--enable-threaded-compositing" "$@"
+  exec $LIBDIR/$APPNAME $SANDBOX ${CHROMIUM_FLAGS} ${PEPPERFLASH} "--password-store=basic" "--enable-threaded-compositing" "--enable-plugins" "--enable-extensions" "--enable-user-scripts" "--enable-printing" "--enable-accelerated-video" "--enable-sync" "$@"
 fi
 
