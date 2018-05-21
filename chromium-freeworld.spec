@@ -934,7 +934,6 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_datadir}/icons/hicolor/22x22/apps/chromium.png
 %{_datadir}/icons/hicolor/24x24/apps/chromium.png
 %{_datadir}/icons/hicolor/32x32/apps/chromium.png
-%{_datadir}/icons/hicolor/32x32/apps/chromium.png
 %{_datadir}/icons/hicolor/48x48/apps/chromium.png
 %{_datadir}/icons/hicolor/64x64/apps/chromium.png
 %{_datadir}/icons/hicolor/128x128/apps/chromium.png
@@ -957,11 +956,30 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/locales/*.pak
 %dir %{chromiumdir}/PepperFlash/
 
+# new
+%{chromiumdir}/MEIPreload/
+%{chromiumdir}/angledata/
+%{chromiumdir}/brotli
+%{chromiumdir}/character_data_generator
+%{chromiumdir}/font_service.service
+%{chromiumdir}/locales/
+%{chromiumdir}/mksnapshot
+%{chromiumdir}/pyproto/
+%{chromiumdir}/resources/inspector/
+%{chromiumdir}/swiftshader/
+%{chromiumdir}/transport_security_state_generator
+%{chromiumdir}/v8_context_snapshot.bin
+%{chromiumdir}/v8_context_snapshot_generator
+%{chromiumdir}/xdg-mime
+%{chromiumdir}/xdg-settings
+
 %files libs
 %{chromiumdir}/lib*.so*
 %exclude %{chromiumdir}/libwidevinecdm.so
 %exclude %{chromiumdir}/libwidevinecdmadapter.so
+%if !%{with system_ffmpeg}
 %exclude %{chromiumdir}/libffmpeg.so
+%endif
 
 %if %{with devel_tools}
 %files chromedriver
