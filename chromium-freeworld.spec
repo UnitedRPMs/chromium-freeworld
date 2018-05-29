@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
@@ -61,7 +61,11 @@
 %endif
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
+%if 0%{?fedora} >= 28
 %bcond_without system_harfbuzz
+%else
+%bcond_with system_harfbuzz
+%endif
 
 # Allow testing whether icu can be unbundled
 %bcond_with system_libicu
@@ -122,30 +126,39 @@ Source13:   chromium-freeworld.appdata.xml
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
 Patch:    chromium-last-commit-position.patch
 
-# Add a patch from Fedora to fix build with GCC 8
-# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=8cfa28d
-# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=61203bf
-Patch1:    chromium-mojo-gcc8.patch
+# Add several patches from Fedora to fix build with GCC 7
+# https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=86f726d
+Patch1:    chromium-blink-fpermissive.patch
 
-# Add patches from upstream to fix build with GCC 7
-Patch2:    chromium-gcc7-r540815.patch
-Patch3:    chromium-gcc7-r540828.patch
-Patch4:    chromium-gcc7-r541029.patch
-Patch5:    chromium-gcc7-r541516.patch
-Patch6:    chromium-gcc7-r541827.patch
+# Thanks openSuse
+Patch2:    chromium-prop-codecs.patch
+Patch3:   chromium-gcc7.patch
+Patch4:   chromium-non-void-return.patch
+
+# Thanks Debian
+# Fix warnings
+Patch5:    comment.patch   
+Patch6:    enum-boolean.patch		
+Patch7:    unused-typedefs.patch
+# Fix gn
+Patch8:    buildflags.patch
+Patch9:    narrowing.patch
+# fixes
+Patch10:   optimize.patch
+Patch11:   gpu-timeout.patch
 
 # Thanks Gentoo
-Patch7:   chromium-ffmpeg-r1.patch
-Patch8:   chromium-ffmpeg-clang.patch
-Patch9:   chromium-clang-r2.patch
-Patch10:  chromium-clang-r4.patch
+Patch12:   chromium-ffmpeg-r1.patch
+Patch13:   chromium-ffmpeg-clang.patch
+Patch14:   chromium-clang-r2.patch
+Patch15:   chromium-clang-r4.patch
 
 # Thanks Arch Linux
-Patch11: fix-frame-buttons-rendering-too-large-when-using-OSX.patch
+Patch16: fix-frame-buttons-rendering-too-large-when-using-OSX.patch
 
 # Thanks Intel
 %if %{with vaapi}
-Patch12: vaapi.patch
+Patch17: vaapi.patch
 %endif
 
 ExclusiveArch: i686 x86_64 armv7l
@@ -155,10 +168,8 @@ ExclusiveArch: i686 x86_64 armv7l
 BuildRequires: gcc >= 5.1.1-2
 %endif
 
-%if !%{with clang_bundle}
 %if %{with clang} || %{with require_clang} 
 BuildRequires: clang llvm
-%endif
 %endif
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata
@@ -362,6 +373,11 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %autosetup -T -D -n chromium-%{version} -p1
 %endif
 
+# fix debugedit: canonicalization unexpectedly shrank by one character
+#sed -i 's@gpu//@gpu/@g' content/renderer/gpu/compositor_forwarding_message_filter.cc
+sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/audio_processing/utility/ooura_fft.cc
+sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/audio_processing/utility/ooura_fft_sse2.cc
+
 tar xJf %{S:998} -C %{_builddir}
 tar xJf %{S:997} -C %{_builddir}
 
@@ -411,6 +427,14 @@ export PYTHON_DISALLOW_AMBIGUOUS_VERSION=0
 # Patch from crbug (chromium bugtracker)
 # fix the missing define (if not, fail build) (need upstream fix) (https://crbug.com/473866)
 sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/widevine/cdm/stub/widevine_cdm_version.h"
+
+# Allow building against system libraries in official builds
+  sed -i 's/OFFICIAL_BUILD/GOOGLE_CHROME_BUILD/' \
+    tools/generate_shim_headers/generate_shim_headers.py
+
+# Work around broken screen sharing in Google Meet
+  # https://crbug.com/829916#c16
+  sed -i 's/"Chromium/"Chrome/' chrome/common/chrome_content_client_constants.cc
 
 
 python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
@@ -514,9 +538,6 @@ buildtools/third_party/libc++abi \
     third_party/libXNVCtrl \
     third_party/libyuv \
 third_party/llvm \
-%if %{with clang_bundle}
-    third_party/llvm-clang \
-%endif
     third_party/lss \
     third_party/lzma_sdk \
 %if !%{with system_markupsafe}
@@ -645,14 +666,17 @@ ln -s %{python2_sitelib}/ply third_party/ply
 
 
 # Remove compiler flags not supported by our system clang
-#  sed -i \
-#    -e '/"-Wno-enum-compare-switch"/d' \
-#    -e '/"-Wno-null-pointer-arithmetic"/d' \
-#    -e '/"-Wno-tautological-unsigned-zero-compare"/d' \
-#    -e '/"-Wno-tautological-constant-compare"/d' \
-#    -e '/"-Wno-unused-lambda-capture"/d' \
-#    -e '/"-Wunused-lambda-capture"/d' \
-#    build/config/compiler/BUILD.gn
+%if 0%{?fedora} <= 27
+  sed -i \
+    -e '/"-Wno-enum-compare-switch"/d' \
+    -e '/"-Wno-null-pointer-arithmetic"/d' \
+    -e '/"-Wno-enum-compare-switch"/d' \
+    -e '/"-Wno-tautological-unsigned-zero-compare"/d' \
+    -e '/"-Wno-tautological-constant-compare"/d' \
+    -e '/"-Wno-unused-lambda-capture"/d' \
+    -e '/"-Wunused-lambda-capture"/d' \
+    build/config/compiler/BUILD.gn
+%endif
 
 %build
 
@@ -685,11 +709,7 @@ _flags+=(
     'is_debug=false'
 %if %{with clang}
     'is_clang=true' 
-%if !%{with clang_bundle}
     'clang_base_path="/usr"'
-%else
-    'clang_base_path = "~/build/BUILD/chromium-%{version}/third_party/llvm-clang/"'
-%endif
     'clang_use_chrome_plugins=false'
 %else
     'is_clang=false' 
