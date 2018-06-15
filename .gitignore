@@ -4,7 +4,10 @@ RPMS/*
 SPECS/*
 SRPMS/*
 chromium-*.tar.xz
+clang*.tar.xz
 chromium*/
 new/*
 orig/*
+*.ttf
+*.rpm
 .directory
