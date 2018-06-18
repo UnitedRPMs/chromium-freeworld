@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
@@ -33,7 +33,13 @@
 
 # clang is necessary for a fast build
 %bcond_without clang
+# 
+%if 0%{?fedora} <= 27
+%bcond_without clang_bundle
+%else
 %bcond_with clang_bundle
+%endif
+
 
 # jinja conditional
 %if 0%{?fedora} < 26
@@ -115,10 +121,6 @@ Source11:   chromium-freeworld.desktop
 # http://pkgs.fedoraproject.org/cgit/rpms/chromium.git/tree/
 Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
-
-%if %{with clang_bundle}
-Source14:   http://releases.llvm.org/6.0.0/clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27.tar.xz
-%endif
 
 # Unpackaged fonts
 Source15:	https://fontlibrary.org/assets/downloads/gelasio/4d610887ff4d445cbc639aae7828d139/gelasio.zip
@@ -400,7 +402,8 @@ sed -i 's@audio_processing//@audio_processing/@g' third_party/webrtc/modules/aud
 sed -i 's|public Path,|public blink::Path,|g' third_party/blink/renderer/platform/graphics/path.h
 
 %if %{with clang_bundle}
-tar xJf %{S:14} -C %{_builddir} 
+wget -c http://releases.llvm.org/6.0.0/clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27.tar.xz
+tar xJf clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27.tar.xz -C %{_builddir} 
 pushd %{_builddir}
 mv -f clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27 buclang
 popd
@@ -730,7 +733,9 @@ ln -s %{python2_sitelib}/ply third_party/ply
     -e '/"-Wno-unused-lambda-capture"/d' \
     -e '/"-Wunused-lambda-capture"/d' \
     build/config/compiler/BUILD.gn
-%else
+%endif
+
+%if 0%{?fedora} >= 28 || %{with clang_bundle}
 sed -i \
     -e '/"-Wno-ignored-pragma-optimize"/d' build/config/compiler/BUILD.gn
 %endif
