@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 
 %global debug_package %{nil}
@@ -93,8 +93,8 @@
 %bcond_with vaapi
 
 Name:       chromium-freeworld
-Version:    67.0.3396.87
-Release:    3%{?dist}
+Version:    68.0.3440.75
+Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -127,46 +127,43 @@ Source15:	https://fontlibrary.org/assets/downloads/gelasio/4d610887ff4d445cbc639
 Source16:	http://download.savannah.nongnu.org/releases/freebangfont/MuktiNarrow-0.94.tar.bz2
 Source17:	https://chromium.googlesource.com/chromium/src.git/+archive/refs/heads/master/third_party/test_fonts.tar.gz
 Source18:	https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf
+Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/third_party/gardiner_mod.tar.gz
 
 # Add a patch from Fedora to fix GN build
 # https://src.fedoraproject.org/cgit/rpms/chromium.git/commit/?id=0df9641
 Patch:    chromium-last-commit-position.patch
 
-# Add several patches from Fedora 
-Patch1:   chromium-nacl-llvm-ar.patch
-
-# Thanks Arch Linux
-Patch2:   x11-fix-mixup-between-DIP-pixel-coordinates.patch
+Patch1:   llvm-fix.patch
 
 # Thanks openSuse
-Patch3:    chromium-prop-codecs.patch
-Patch4:    chromium-non-void-return.patch
+Patch2:    chromium-prop-codecs.patch
+Patch3:    chromium-non-void-return.patch
 
 # Thanks Debian
 # Fix warnings
-Patch5:    comment.patch   
-Patch6:    enum-boolean.patch		
-Patch7:    unused-typedefs.patch
+Patch4:    comment.patch   
+Patch5:    enum-boolean.patch		
+Patch6:    unused-typedefs.patch
 # Fix gn
-Patch8:    buildflags.patch
-Patch9:    narrowing.patch
+Patch7:    buildflags.patch
+Patch8:    narrowing.patch
 # fixes
-Patch10:   optimize.patch
-Patch11:   gpu-timeout.patch
-Patch12:   namespace.patch
-Patch13:   ambiguous-aliases.patch
-Patch14:   mojo.patch
-Patch15:   dma.patch
-Patch16:   widevine-allow-on-linux.patch
+Patch09:   optimize.patch
+Patch10:   gpu-timeout.patch
+Patch11:   namespace.patch
+Patch12:   ambiguous-aliases.patch
+#Patch14:   mojo.patch
+Patch13:   dma.patch
+Patch14:   widevine-allow-on-linux.patch
 
 # Thanks Gentoo
-Patch17:   chromium-ffmpeg-r1.patch
-Patch18:   chromium-ffmpeg-clang.patch
-Patch19:   chromium-gn-bootstrap-r23.patch
-
+Patch15:   chromium-ffmpeg-r1.patch
+Patch16:   chromium-libwebp-shim-r0.patch
+Patch17:   chromium-cors-string-r0.patch
+Patch18:   chromium-libjpeg-r0.patch
 # Thanks Intel
 %if %{with vaapi}
-Patch20:   vaapi.patch
+Patch19:   vaapi.patch
 %endif
 
 ExclusiveArch: i686 x86_64 armv7l
@@ -414,6 +411,7 @@ popd
 rm -rf third_party/test_fonts
 mkdir -p third_party/test_fonts/test_fonts
 tar xmzvf %{S:17} -C third_party/test_fonts
+tar xmzvf %{S:19} -C third_party/test_fonts/test_fonts
 pushd third_party/test_fonts/test_fonts
 unzip %{S:15}
 tar xf %{S:16}
@@ -425,7 +423,6 @@ cp -a /usr/share/fonts/lohit-devanagari/Lohit-Devanagari.ttf /usr/share/fonts/lo
 cp -a /usr/share/fonts/google-noto-cjk/NotoSansCJKjp-Regular.otf /usr/share/fonts/google-noto/NotoSansKhmer-Regular.ttf .
 cp -a /usr/share/fonts/google-croscore/Tinos-*.ttf .
 cp -f %{S:18} .
-svn checkout "https://github.com/bloomberg/chromium.bb/trunk/src/third_party/gardiner_mod" . && rm -rf .svn
 svn checkout https://github.com/google/fonts/trunk/apache/arimo . && rm -rf .svn
 svn checkout https://github.com/google/fonts/trunk/apache/cousine . && rm -rf .svn
 popd
@@ -510,8 +507,11 @@ buildtools/third_party/libc++abi \
     courgette/third_party \
     native_client/src/third_party/dlmalloc \
     native_client/src/third_party/valgrind \
+    net/third_party/http2 \
     net/third_party/mozilla_security_manager \
     net/third_party/nss \
+    net/third_party/quic \
+    net/third_party/spdy \
     third_party/node \
     third_party/adobe \
     third_party/analytics \
@@ -571,11 +571,11 @@ third_party/apple_apsl \
     third_party/leveldatabase \
     third_party/libaddressinput \
     third_party/libaom \
-    third_party/libaom/source/libaom/third_party/x86inc \
     third_party/libjingle \
     third_party/libphonenumber \
     third_party/libsecret \
     third_party/libsrtp \
+    third_party/libsync \
     third_party/libudev \
     third_party/libusb \
 %if !%{with system_libvpx}
@@ -617,10 +617,13 @@ third_party/markupsafe \
     third_party/protobuf \
     third_party/protobuf/third_party/six \
     third_party/qcms \
+    third_party/pyjson5 \
+    third_party/rnnoise \
     third_party/sfntly \
     third_party/skia \
     third_party/skia/third_party/vulkan \
     third_party/skia/third_party/gif \
+    third_party/skia/third_party/skcms \
     third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
     third_party/smhasher \
     third_party/speech-dispatcher \
@@ -635,6 +638,7 @@ third_party/markupsafe \
     third_party/webrtc \
     third_party/widevine \
     third_party/inspector_protocol \
+    v8/third_party/antlr4 \
     v8/third_party/inspector_protocol \
     third_party/woff2 \
     third_party/xdg-utils \
@@ -654,6 +658,7 @@ third_party/markupsafe \
     third_party/pdfium/third_party/libpng16 \
     third_party/pdfium/third_party/libtiff \
     third_party/pdfium/third_party/skia_shared \
+    third_party/perfetto \
     third_party/googletest \
     third_party/glslang-angle \
     third_party/unrar \
@@ -816,7 +821,6 @@ _flags+=(
     'enable_widevine=true'
     'enable_nacl=false'
     'enable_swiftshader=true'
-    'enable_webrtc=true'
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
@@ -1108,6 +1112,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Jul 26 2018 - David Va <davidva AT tuta DOT io> 68.0.3440.75-7
+- Updated to 68.0.3440.75-7
 
 * Thu Jun 14 2018 - David Vasquez <davidjeremias82 AT gmail DOT com>  67.0.3396.87-3
 - Updated to 67.0.3396.87

@@ -1,8 +1,6 @@
-diff --git a/build/toolchain/gcc_toolchain.gni b/build/toolchain/gcc_toolchain.gni
-index b6f63d7556aa..066d4d854522 100644
---- a/build/toolchain/gcc_toolchain.gni
-+++ b/build/toolchain/gcc_toolchain.gni
-@@ -339,12 +339,12 @@ template("gcc_toolchain") {
+--- a/build/toolchain/gcc_toolchain.gni	2018-07-24 16:08:13.000000000 -0600
++++ b/build/toolchain/new.gni	2018-07-29 19:29:45.046559458 -0600
+@@ -339,12 +339,12 @@
          # We use slightly different arflags for AIX.
          extra_arflags = "-r -c -s"
        } else {
@@ -17,14 +15,14 @@ index b6f63d7556aa..066d4d854522 100644
        description = "AR {{output}}"
        rspfile_content = "{{inputs}}"
        outputs = [
---- chromium-67.0.3396.62/build/config/compiler/BUILD.gn.orig	2018-05-30 16:43:03.000000000 +0800
-+++ chromium-67.0.3396.62/build/config/compiler/BUILD.gn	2018-05-31 22:10:19.140340429 +0800
-@@ -1573,7 +1573,7 @@
-     # TODO(thomasanderson): Enable on ChromeOS builds once
-     # https://crbug.com/829956 is fixed.
-     if (default_toolchain != "//build/toolchain/cros:target") {
--      arflags = [ "-T" ]
+--- a/build/config/compiler/BUILD.gn	2018-07-24 16:08:13.000000000 -0600
++++ b/build/config/compiler/BUILD-new.gn	2018-07-29 19:32:54.113525614 -0600
+@@ -1595,7 +1595,7 @@
+   # have a "thin archive" mode (it does accept -T, but it means truncating
+   # archive names to 16 characters, which is not what we want).
+   if ((is_posix && !is_nacl && !is_mac && !is_ios) || is_fuchsia) {
+-    arflags = [ "-T" ]
 +      arflags = [ "T" ]
-     }
    }
  }
+ 
