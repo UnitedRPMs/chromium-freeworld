@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
@@ -170,7 +170,7 @@ ExclusiveArch: i686 x86_64 armv7l
 
 # Make sure we don't encounter GCC 5.1 bug
 %if 0%{?fedora} >= 22
-BuildRequires: gcc >= 5.1.1-2
+BuildRequires:	gcc-c++
 %endif
 
 %if %{with clang} || %{with require_clang} 
@@ -486,6 +486,10 @@ sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/w
   # https://crbug.com/829916#c16
   sed -i 's/"Chromium/"Chrome/' chrome/common/chrome_content_client_constants.cc
 
+# python2 fix
+mkdir -p "$HOME/bin/"
+ln -sfn /usr/bin/python2.7 $HOME/bin/python
+export PATH="$HOME/bin/:$PATH"
 
 python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     buildtools/third_party/libc++ \
@@ -753,6 +757,9 @@ sed -i \
 # https://fedoraproject.org/wiki/Changes/Avoid_usr_bin_python_in_RPM_Build#Quick_Opt-Out
 export PYTHON_DISALLOW_AMBIGUOUS_VERSION=0
 
+# python fix
+export PATH="$HOME/bin/:$PATH"
+
 # some still call gcc/g++
 %if %{with clang}
 %if %{with clang_bundle}
@@ -849,7 +856,7 @@ export PATH=%{_builddir}/tools/depot_tools/:"$PATH"
 
 python2 tools/gn/bootstrap/bootstrap.py -v --gn-gen-args "${_flags[*]}"
 
-
+#../tools/gn/bin/linux/gn gen --args="${_flags[*]}" out/Release
 ./out/Release/gn gen --args="${_flags[*]}" out/Release 
 
 # SUPER POWER!

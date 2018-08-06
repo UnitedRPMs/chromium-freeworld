@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/python2
 # Copyright 2010,2015-2016 Tom Callaway <tcallawa@redhat.com>
 # Copyright 2013-2016 Tomas Popela <tpopela@redhat.com>
 # Permission is hereby granted, free of charge, to any person obtaining
