@@ -90,11 +90,11 @@
 %bcond_without jumbo_unity
 
 # Vaapi conditional
-%bcond_with vaapi
+%bcond_without vaapi
 
 Name:       chromium-freeworld
 Version:    69.0.3497.100
-Release:    7%{?dist}
+Release:    8%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -134,9 +134,23 @@ Patch2:         chromium-ffmpeg-ebp-r1.patch
 Patch3:         chromium-compiler-r4.patch
 # Thanks Fedora
 Patch4:         chromium-nacl-llvm-ar.patch
+#Thanks Debian
+Patch5:         optimize.patch
+Patch6:         ownership-error.patch
+Patch7:         sizet.patch
+Patch8:         empty-array.patch
+Patch9:         mojo.patch
+Patch10:        android.patch
+Patch11:        signin.patch
+Patch12:        third-party-cookies.patch
+Patch13:        vpx.patch
+Patch14:        sequence-point.patch
+Patch15:        printf.patch
+Patch16:        libcxx.patch
 # Thanks Intel
+# https://chromium-review.googlesource.com/c/chromium/src/+/532294
 %if %{with vaapi}
-Patch5:       	vaapi.patch
+Patch17:       	vaapi.patch
 %endif
 
 ExclusiveArch: x86_64 
@@ -152,7 +166,12 @@ BuildRequires: clang llvm
 # Basic tools and libraries
 BuildRequires: ninja-build, bison, gperf, hwdata, gn
 BuildRequires: libgcc(x86-32), glibc(x86-32), libatomic
-BuildRequires: libcap-devel, cups-devel, minizip-devel, alsa-lib-devel
+BuildRequires: libcap-devel, cups-devel, alsa-lib-devel
+%if 0%{?fedora} >= 30
+BuildRequires:	minizip-compat-devel
+%else
+BuildRequires:	minizip-devel
+%endif
 BuildRequires: pkgconfig(libexif), pkgconfig(nss), 
 %if %{with _gtk3}
 BuildRequires: pkgconfig(gtk+-3.0)
@@ -388,8 +407,8 @@ cp -a /usr/share/fonts/lohit-devanagari/Lohit-Devanagari.ttf /usr/share/fonts/lo
 cp -a /usr/share/fonts/google-noto-cjk/NotoSansCJKjp-Regular.otf /usr/share/fonts/google-noto/NotoSansKhmer-Regular.ttf .
 cp -a /usr/share/fonts/google-croscore/Tinos-*.ttf .
 cp -f %{S:18} .
-svn checkout https://github.com/google/fonts/trunk/apache/arimo . && rm -rf .svn
-svn checkout https://github.com/google/fonts/trunk/apache/cousine . && rm -rf .svn
+svn checkout --force https://github.com/google/fonts/trunk/apache/arimo . && rm -rf .svn
+svn checkout --force https://github.com/google/fonts/trunk/apache/cousine . && rm -rf .svn
 popd
 #
 
@@ -429,6 +448,10 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 
 # xlocale.h is gone in F26/RAWHIDE
 sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
+
+# Change shebang in all relevant files in this directory and all subdirectories
+# See `man find` for how the `-exec command {} +` syntax works
+find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 
 
 # python2 fix
@@ -777,9 +800,10 @@ _flags+=(
     'symbol_level=0'
 %if %{with jumbo_unity}
     'use_jumbo_build=true'
-    'jumbo_file_merge_limit=9'
+    'jumbo_file_merge_limit=12'
 %endif
     'concurrent_links=1'
+    'optimize_for_size=true'
     'remove_webcore_debug_symbols=true'
 %if %{with _gtk3}
     'use_gtk3=true'
@@ -936,6 +960,31 @@ cp -a %{SOURCE33} %{buildroot}%{_unitdir}/
 sed -i 's|@@CRD_PATH@@|%{crd_path}|g' %{buildroot}/%{_unitdir}/chrome-remote-desktop.service
 %endif
 
+# Mangling fix
+# bash
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/usr/lib64/chrome-remote-desktop/is-remoting-session
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-settings
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-mime
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{_sysconfdir}/chromium/remoting_native_messaging_host/chrome-remote-desktop-host
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{_sysconfdir}/chromium/remoting_native_messaging_host/user-session
+# python
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/message.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/reflection.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/service_reflection.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/__init__.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/type_checkers.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/wire_format.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/containers.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/python_message.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/api_implementation.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/decoder.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/encoder.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/message_listener.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/descriptor.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/service.py
+sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/text_format.py
+
+
 %post
 touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 update-desktop-database &> /dev/null || :
@@ -1054,6 +1103,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Oct 03 2018 - David Va <davidva AT tuta DOT io> 69.0.3497.100-8
+- Optimization enabled
 
 * Fri Sep 21 2018 - David Va <davidva AT tuta DOT io> 69.0.3497.100-7
 - Updated to 69.0.3497.100-7
