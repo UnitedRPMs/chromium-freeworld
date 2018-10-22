@@ -29,7 +29,7 @@
 %global debug_package %{nil}
 
 # vpx
-%bcond_with system_libvpx
+%bcond_without system_libvpx
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -76,9 +76,6 @@
 # Allow disabling unconditional build dependency on clang
 %bcond_without require_clang
 
-# Gtk conditional
-%bcond_without _gtk3
-
 # In UnitedRPMs, we have openh264
 %bcond_without system_openh264
 
@@ -93,8 +90,8 @@
 %bcond_without vaapi
 
 Name:       chromium-freeworld
-Version:    69.0.3497.100
-Release:    8%{?dist}
+Version:    70.0.3538.67
+Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -133,24 +130,19 @@ Patch1:         chromium-widevine-r2.patch
 Patch2:         chromium-ffmpeg-ebp-r1.patch
 Patch3:         chromium-compiler-r4.patch
 # Thanks Fedora
-Patch4:         chromium-nacl-llvm-ar.patch
+#Patch4:         chromium-nacl-llvm-ar.patch
+Patch5:		chromium-pdfium-stdlib-r0.patch
 #Thanks Debian
-Patch5:         optimize.patch
-Patch6:         ownership-error.patch
-Patch7:         sizet.patch
-Patch8:         empty-array.patch
-Patch9:         mojo.patch
-Patch10:        android.patch
-Patch11:        signin.patch
-Patch12:        third-party-cookies.patch
-Patch13:        vpx.patch
-Patch14:        sequence-point.patch
-Patch15:        printf.patch
-Patch16:        libcxx.patch
-# Thanks Intel
+Patch6:         optimize.patch
+Patch7:		fixes_mojo.patch
+Patch8:         third-party-cookies.patch
+Patch9:         vpx.patch
+Patch10:        libcxx.patch
+# VAAPI
 # https://chromium-review.googlesource.com/c/chromium/src/+/532294
 %if %{with vaapi}
-Patch17:       	vaapi.patch
+Patch11:       	cfi-vaapi-fix.patch
+Patch12:	chromium-vaapi-r21.patch
 %endif
 
 ExclusiveArch: x86_64 
@@ -173,11 +165,7 @@ BuildRequires:	minizip-compat-devel
 BuildRequires:	minizip-devel
 %endif
 BuildRequires: pkgconfig(libexif), pkgconfig(nss), 
-%if %{with _gtk3}
 BuildRequires: pkgconfig(gtk+-3.0)
-%else
-BuildRequires: pkgconfig(gtk+-2.0)
-%endif
 BuildRequires: python2-devel
 BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
@@ -267,7 +255,7 @@ BuildRequires:	libva-devel
 %endif
 BuildRequires:  pkgconfig(libtcmalloc)
 #unbundle fontconfig avoid fails in start
-BuildRequires:	fontconfig-devel
+BuildRequires:	fontconfig-devel 
 # fonts
 BuildRequires:	google-croscore-arimo-fonts
 BuildRequires:	google-croscore-cousine-fonts
@@ -451,7 +439,14 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
-find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
+#find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
+
+
+# Avoid CFI failures with unbundled libxml
+  sed -i -e 's/\<xmlMalloc\>/malloc/' -e 's/\<xmlFree\>/free/' \
+    third_party/blink/renderer/core/xml/*.cc \
+    third_party/blink/renderer/core/xml/parser/xml_document_parser.cc \
+    third_party/libxml/chromium/libxml_utils.cc
 
 
 # python2 fix
@@ -477,6 +472,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		net/third_party/nss \
 		net/third_party/quic \
 		net/third_party/spdy \
+                net/third_party/uri_template \
 		third_party/WebKit \
 		third_party/abseil-cpp \
 		third_party/analytics \
@@ -547,6 +543,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/libsync \
 		third_party/libudev \
 		third_party/libwebm \
+		third_party/libxml/chromium \
 		third_party/libyuv \
 		third_party/llvm \
 		third_party/lss \
@@ -596,14 +593,21 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/web-animations-js \
 		third_party/webdriver \
 		third_party/webrtc \
+                third_party/webrtc/common_audio/third_party/fft4g \
+		third_party/webrtc/common_audio/third_party/spl_sqrt_floor \
+		third_party/webrtc/modules/third_party/fft \
+		third_party/webrtc/modules/third_party/g711 \
+		third_party/webrtc/modules/third_party/g722 \
+		third_party/webrtc/rtc_base/third_party/base64 \
+		third_party/webrtc/rtc_base/third_party/sigslot \
 		third_party/widevine \
 		third_party/woff2 \
 		third_party/zlib/google \
 		url/third_party/mozilla \
 		v8/src/third_party/valgrind \
 		v8/src/third_party/utf8-decoder \
-		v8/third_party/antlr4 \
 		v8/third_party/inspector_protocol \
+		v8/third_party/v8 \
                 third_party/yasm \
 		base/third_party/libevent \
 		third_party/xdg-utils \
@@ -611,9 +615,11 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/opus \
 		third_party/speech-dispatcher \
 		third_party/test_fonts \
+%if %{with remote_desktop}
 		third_party/sinonjs \
 		third_party/blanketjs \
 		third_party/qunit \
+%endif
 %if !%{with system_libicu}
     		third_party/icu \
    		base/third_party/icu/ \
@@ -626,7 +632,11 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     		third_party/libvpx/source/libvpx/third_party/googletest \
     		third_party/libvpx/source/libvpx/third_party/libwebm \
     		third_party/libvpx/source/libvpx/third_party/libyuv \
+		third_party/libaom/source/libaom/third_party/vector \
     		third_party/libvpx/source/libvpx/third_party/x86inc \
+%else
+		third_party/libaom/source/libaom/third_party/vector \
+		third_party/libaom/source/libaom/third_party/x86inc \
 %endif
 %if %{with system_libxml2}
    		third_party/libxml/chromium \
@@ -673,6 +683,9 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %endif
     yasm \
     fontconfig \
+%if %{with system_libvpx}
+    libvpx \
+%endif
     zlib
 
 
@@ -805,11 +818,6 @@ _flags+=(
     'concurrent_links=1'
     'optimize_for_size=true'
     'remove_webcore_debug_symbols=true'
-%if %{with _gtk3}
-    'use_gtk3=true'
-%else
-    'use_gtk3=false'
-%endif
 )
 
 # NOTE "is_component_build=false", enables headless. Change to "is_component_ffmpeg=false" ever.
@@ -819,6 +827,10 @@ gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release
 
 # SUPER POWER!
 jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
+
+%if %{with remote_desktop}
+ninja-build -C out/Release remoting_all -j$jobs
+%endif
 
 # HERE the real build
 %if %{with devel_tools}
@@ -835,10 +847,6 @@ ninja-build -C out/Release chrome -j$jobs
 %endif
 %endif
 
-
-%if %{with remote_desktop}
-ninja-build -C out/Release remoting_all -j$jobs
-%endif
 
 %install
 
@@ -859,7 +867,7 @@ install -m 644 %{SOURCE13} %{buildroot}%{_datadir}/appdata/
 
 # Brute Copy
 cp \
-    out/Release/{chrome_{100,200}_percent,resources}.pak \
+    out/Release/{chrome_{100,200}_percent,resources,views_mus_resources,headless_lib}.pak \
     out/Release/{*.bin,*.so,v8_context_snapshot_generator,mksnapshot,brotli,character_data_generator,xdg-settings,xdg-mime,transport_security_state_generator} \
     %{buildroot}/%{chromiumdir}/
 
@@ -1103,6 +1111,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Oct 17 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.67-7
+- Updated to 70.0.3538.67
 
 * Wed Oct 03 2018 - David Va <davidva AT tuta DOT io> 69.0.3497.100-8
 - Optimization enabled
