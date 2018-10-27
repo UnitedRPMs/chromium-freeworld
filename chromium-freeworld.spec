@@ -23,7 +23,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 
 %global debug_package %{nil}
@@ -34,7 +34,7 @@
 # clang is necessary for a fast build
 %bcond_without clang
 # 
-%if 0%{?fedora} <= 27
+%if 0%{?fedora} <= 28
 %bcond_without clang_bundle
 %else
 %bcond_with clang_bundle
@@ -371,10 +371,10 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 
 
 %if %{with clang_bundle}
-wget -c http://releases.llvm.org/6.0.0/clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27.tar.xz
-tar xJf clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27.tar.xz -C %{_builddir} 
+wget -c http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+tar xJf clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz -C %{_builddir} 
 pushd %{_builddir}
-mv -f clang+llvm-6.0.0-x86_64-linux-gnu-Fedora27 buclang
+mv -f clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04 buclang
 popd
 %endif
 
@@ -412,9 +412,9 @@ popd
 %else
 pushd third_party
 rm -rf markupsafe/
-git clone --depth 1 https://github.com/pallets/markupsafe.git 
-cp -f $PWD/markupsafe/markupsafe/*.py $PWD/markupsafe/
-cp -f $PWD/markupsafe/markupsafe/*.c $PWD/markupsafe/
+git clone --depth 1 https://github.com/pallets/markupsafe.git $PWD/markupsafe
+cp -f $PWD/markupsafe/src/markupsafe/*.py $PWD/markupsafe/
+cp -f $PWD/markupsafe/src/markupsafe/*.c $PWD/markupsafe/
 popd
 %endif
 
@@ -439,7 +439,7 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
-#find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
+find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 
 
 # Avoid CFI failures with unbundled libxml
