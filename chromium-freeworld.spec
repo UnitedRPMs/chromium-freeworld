@@ -8,6 +8,7 @@
 #  [7] http://www.linuxfromscratch.org/blfs/view/cvs/xsoft/chromium.html
 #  [8] https://aur.archlinux.org/packages/chromium-gtk2/
 #  [9] https://github.com/RussianFedora/chromium/
+#  [10] http://svnweb.mageia.org/packages/cauldron/chromium-browser-stable/?pathrev=1321923
 
 
 %global chromiumdir %{_libdir}/chromium
@@ -67,7 +68,11 @@
 %endif
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
+%if 0%{?fedora} >= 29
+%bcond_without system_harfbuzz
+%else
 %bcond_with system_harfbuzz
+%endif
 
 
 # Allow testing whether icu can be unbundled
@@ -89,8 +94,11 @@
 # Vaapi conditional
 %bcond_without vaapi
 
+# Gtk2 conditional
+%bcond_without gtk2
+
 Name:       chromium-freeworld
-Version:    70.0.3538.67
+Version:    70.0.3538.77
 Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -144,6 +152,10 @@ Patch10:        libcxx.patch
 Patch11:       	cfi-vaapi-fix.patch
 Patch12:	chromium-vaapi-r21.patch
 %endif
+Patch13:	chromium-nacl-llvm-ar.patch
+Patch14:	chromium-70.0.3538.67-sandbox-pie.patch
+# Thanks Mageia
+Patch15:	chromium-70-gtk2.patch
 
 ExclusiveArch: x86_64 
 
@@ -165,11 +177,15 @@ BuildRequires:	minizip-compat-devel
 BuildRequires:	minizip-devel
 %endif
 BuildRequires: pkgconfig(libexif), pkgconfig(nss), 
+%if %{with gtk2}
+BuildRequires: pkgconfig(gtk+-2.0)
+%else
 BuildRequires: pkgconfig(gtk+-3.0)
+%endif
 BuildRequires: python2-devel
 BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
-BuildRequires: pkgconfig(gnome-keyring-1)
+#BuildRequires: pkgconfig(gnome-keyring-1)
 BuildRequires: pkgconfig(libffi)
 # remove_bundled_libraries.py --do-remove
 BuildRequires: python2-rpm-macros
@@ -436,6 +452,10 @@ sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/d
 
 # xlocale.h is gone in F26/RAWHIDE
 sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__locale
+
+# Allow building against system libraries in official builds
+  sed -i 's/OFFICIAL_BUILD/GOOGLE_CHROME_BUILD/' \
+    tools/generate_shim_headers/generate_shim_headers.py
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
@@ -805,6 +825,9 @@ _flags+=(
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
+%if %{with gtk2}
+    'gtk_version=2'
+%endif
 %ifarch x86_64
     'system_libdir="lib64"'
 %endif

@@ -1,0 +1,1547 @@
+--- a/chrome/browser/ui/libgtkui/BUILD.gn.gtk2_support	2018-08-29 15:55:22.346870411 +0200
++++ b/chrome/browser/ui/libgtkui/BUILD.gn	2018-08-31 20:20:58.189798543 +0200
+@@ -16,8 +16,6 @@
+     "app_indicator_icon_menu.h",
+     "chrome_gtk_menu_subclasses.cc",
+     "chrome_gtk_menu_subclasses.h",
+-    "gtk_background_painter.cc",
+-    "gtk_background_painter.h",
+     "gtk_event_loop.cc",
+     "gtk_event_loop.h",
+     "gtk_key_bindings_handler.cc",
+@@ -30,10 +28,6 @@
+     "libgtkui_export.h",
+     "menu_util.cc",
+     "menu_util.h",
+-    "native_theme_gtk.cc",
+-    "native_theme_gtk.h",
+-    "nav_button_provider_gtk.cc",
+-    "nav_button_provider_gtk.h",
+     "print_dialog_gtk.cc",
+     "print_dialog_gtk.h",
+     "printing_gtk_util.cc",
+@@ -44,8 +38,6 @@
+     "select_file_dialog_impl_gtk.h",
+     "select_file_dialog_impl_kde.cc",
+     "settings_provider.h",
+-    "settings_provider_gtk.cc",
+-    "settings_provider_gtk.h",
+     "skia_utils_gtk.cc",
+     "skia_utils_gtk.h",
+     "unity_service.cc",
+@@ -123,6 +113,27 @@
+     "//ui/strings",
+     "//ui/views",
+   ]
++
++  if (gtk_version >= 3) {
++    sources += [
++      "gtk_background_painter.cc",
++      "gtk_background_painter.h",
++      "native_theme_gtk.cc",
++      "native_theme_gtk.h",
++      "nav_button_provider_gtk.cc",
++      "nav_button_provider_gtk.h",
++      "settings_provider_gtk.cc",
++      "settings_provider_gtk.h",
++    ]
++  } else {
++    sources += [
++      "native_theme_gtk2.cc",
++      "native_theme_gtk2.h",
++      "chrome_gtk_frame.cc",
++      "chrome_gtk_frame.h",
++    ]
++  }
++
+   public_deps = [
+     "//chrome/browser:theme_properties",
+   ]
+--- a/chrome/browser/ui/libgtkui/print_dialog_gtk.cc.gtk2_support	2018-08-31 20:52:32.075987134 +0200
++++ b/chrome/browser/ui/libgtkui/print_dialog_gtk.cc	2018-08-31 20:52:57.255522813 +0200
+@@ -487,7 +487,11 @@
+ 
+ static void OnJobCompletedThunk(GtkPrintJob* print_job,
+                                 gpointer user_data,
++#if GTK_MAJOR_VERSION == 2
++                                GError* error
++#else
+                                 const GError* error
++#endif
+                                 ) {
+   static_cast<PrintDialogGtk*>(user_data)->OnJobCompleted(print_job, error);
+ }
+--- a/remoting/host/disconnect_window_linux.cc.gtk2_support	2018-08-28 06:10:31.000000000 +0200
++++ b/remoting/host/disconnect_window_linux.cc	2018-08-31 20:55:07.846114863 +0200
+@@ -211,8 +211,12 @@
+   // The alignment sets narrow margins at the top and bottom, compared with
+   // left and right.  The left margin is made larger to accommodate the
+   // window movement gripper.
++#if GTK_MAJOR_VERSION == 2
++  GtkWidget* button_row = gtk_hbox_new(FALSE, 12);
++#else
+   GtkWidget* button_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+   gtk_box_set_homogeneous(GTK_BOX(button_row), FALSE);
++#endif
+ 
+ #if GTK_CHECK_VERSION(3, 90, 0)
+   gtk_widget_set_margin_start(GTK_WIDGET(button_row), 24);
+@@ -256,11 +260,12 @@
+ 
+ #if !GTK_CHECK_VERSION(3, 90, 0)
+   // GTK4 always uses an RGBA visual for windows.
++#if GTK_MAJOR_VERSION > 2
+   GdkScreen* screen = gtk_widget_get_screen(disconnect_window_);
+   GdkVisual* visual = gdk_screen_get_rgba_visual(screen);
+   if (visual)
+     gtk_widget_set_visual(disconnect_window_, visual);
+-
++#endif
+   // GTK4 shows windows by default.
+   gtk_widget_show_all(disconnect_window_);
+ #endif
+@@ -304,10 +309,51 @@
+ 
+   // gdk_window_set_back_pixmap() is not supported in GDK3, and
+   // background drawing is handled in OnDraw().
++#if GTK_MAJOR_VERSION == 2
++  // Create the depth 1 pixmap for the window shape.
++  GdkPixmap* shape_mask =
++      gdk_pixmap_new(nullptr, current_width_, current_height_, 1);
++  cairo_t* cairo_context = gdk_cairo_create(shape_mask);
++
++  // Set the arc radius for the corners.
++  const int kCornerRadius = 6;
++
++  // Initialize the whole bitmap to be transparent.
++  cairo_set_source_rgba(cairo_context, 0, 0, 0, 0);
++  cairo_set_operator(cairo_context, CAIRO_OPERATOR_SOURCE);
++  cairo_paint(cairo_context);
++
++  // Paint an opaque round rect covering the whole area (leaving the extreme
++  // corners transparent).
++  cairo_set_source_rgba(cairo_context, 1, 1, 1, 1);
++  cairo_set_operator(cairo_context, CAIRO_OPERATOR_SOURCE);
++  AddRoundRectPath(cairo_context, current_width_, current_height_,
++                   kCornerRadius);
++  cairo_fill(cairo_context);
++
++  cairo_destroy(cairo_context);
++  gdk_window_shape_combine_mask(widget->window, shape_mask, 0, 0);
++  g_object_unref(shape_mask);
++
++  // Create a full-color pixmap for the window background image.
++  GdkPixmap* background =
++      gdk_pixmap_new(nullptr, current_width_, current_height_, 24);
++  cairo_context = gdk_cairo_create(background);
++  DrawBackground(cairo_context, current_width_, current_height_);
++  cairo_destroy(cairo_context);
++
++  gdk_window_set_back_pixmap(widget->window, background, FALSE);
++  g_object_unref(background);
++  gdk_window_invalidate_rect(widget->window, nullptr, TRUE);
++#endif  // GTK_MAJOR_VERSION == 2
++
+   return FALSE;
+ }
+ 
+ gboolean DisconnectWindowGtk::OnDraw(GtkWidget* widget, cairo_t* cr) {
++#if GTK_MAJOR_VERSION == 2
++  NOTREACHED();
++#endif
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+ 
+   DrawBackground(cr, current_width_, current_height_);
+--- a/build/linux/sysroot_scripts/sysroot-creator-sid.sh.gtk2_support	2018-08-28 06:09:55.000000000 +0200
++++ b/build/linux/sysroot_scripts/sysroot-creator-sid.sh	2018-08-29 15:55:22.345870429 +0200
+@@ -151,6 +151,7 @@
+   libgtk-4-0
+   libgtk-4-dev
+   libgtk2.0-0
++  libgtk2.0-dev
+   libharfbuzz-dev
+   libharfbuzz-gobject0
+   libharfbuzz-icu0
+--- a/build/config/linux/atk/BUILD.gn.gtk2_support	2018-08-28 06:09:55.000000000 +0200
++++ b/build/config/linux/atk/BUILD.gn	2018-08-31 21:37:07.450910205 +0200
+@@ -3,6 +3,7 @@
+ # found in the LICENSE file.
+ 
+ import("//build/config/features.gni")
++import("//build/config/linux/gtk/gtk.gni")
+ import("//build/config/linux/pkg_config.gni")
+ import("//build/config/ui.gni")
+ 
+@@ -17,20 +18,18 @@
+ }
+ 
+ pkg_config("atk_base") {
+-  packages = [
+-    "atk",
+-    "atk-bridge-2.0",
+-  ]
++  packages = [ "atk" ]
+   atk_lib_dir = exec_script(pkg_config_script,
+                             pkg_config_args + [
+                                   "--libdir",
+                                   "atk",
+                                 ],
+                             "string")
+-  defines = [
+-    "ATK_LIB_DIR=\"$atk_lib_dir\"",
+-    "USE_ATK_BRIDGE",
+-  ]
++  defines = [ "ATK_LIB_DIR=\"$atk_lib_dir\"" ]
++  if (gtk_version >= 3) {
++    packages += [ "atk-bridge-2.0" ]
++    defines += [ "USE_ATK_BRIDGE" ]
++  }
+ }
+ 
+ # gn orders flags on a target before flags from configs. The default config
+--- a/build/config/linux/gtk/gtk.gni.gtk2_support	2018-08-31 21:39:22.319501733 +0200
++++ b/build/config/linux/gtk/gtk.gni	2018-08-31 21:39:24.566461595 +0200
+@@ -7,4 +7,4 @@
+   gtk_version = 3
+ }
+ 
+-assert(gtk_version >= 3 && gtk_version <= 4)
++assert(gtk_version >= 2 && gtk_version <= 4)
+--- a/remoting/host/continue_window_linux.cc.gtk2_support	2018-08-28 06:10:31.000000000 +0200
++++ b/remoting/host/continue_window_linux.cc	2018-08-29 15:55:22.356870226 +0200
+@@ -71,10 +71,14 @@
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+   DCHECK(!continue_window_);
+ 
++  GtkDialogFlags flags = GTK_DIALOG_MODAL;
++#if GTK_MAJOR_VERSION == 2
++  flags = static_cast<GtkDialogFlags>(flags | GTK_DIALOG_NO_SEPARATOR);
++#endif
+   continue_window_ = gtk_dialog_new_with_buttons(
+       l10n_util::GetStringUTF8(IDS_PRODUCT_NAME).c_str(),
+       nullptr,
+-      GTK_DIALOG_MODAL,
++      flags,
+       l10n_util::GetStringUTF8(IDS_STOP_SHARING_BUTTON).c_str(),
+       GTK_RESPONSE_CANCEL,
+       l10n_util::GetStringUTF8(IDS_CONTINUE_BUTTON).c_str(),
+--- a/chrome/common/features.gni.gtk2_support	2018-08-28 06:10:04.000000000 +0200
++++ b/chrome/common/features.gni	2018-08-29 15:55:22.355870245 +0200
+@@ -7,6 +7,7 @@
+ import("//build/config/compiler/compiler.gni")
+ import("//build/config/dcheck_always_on.gni")
+ import("//build/config/features.gni")
++import("//build/config/linux/gtk/gtk.gni")
+ import("//device/vr/buildflags/buildflags.gni")
+ import("//extensions/buildflags/buildflags.gni")
+ import("//media/media_options.gni")
+--- a/chrome/browser/ui/libgtkui/gtk_status_icon.cc.gtk2_support	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/gtk_status_icon.cc	2018-09-01 00:16:15.324692802 +0200
+@@ -21,11 +21,13 @@
+                              const base::string16& tool_tip) {
+   GdkPixbuf* pixbuf = GdkPixbufFromSkBitmap(*image.bitmap());
+   {
++#if GTK_MAJOR_VERSION >= 3
+     // GTK has a bug that leaks 384 bytes when creating a GtkStatusIcon.  It
+     // will not be fixed since the status icon was deprecated in version 3.14.
+     // Luckily, Chromium doesn't need to create a status icon very often, if at
+     // all.
+     ANNOTATE_SCOPED_MEMORY_LEAK;
++#endif
+     gtk_status_icon_ = gtk_status_icon_new_from_pixbuf(pixbuf);
+   }
+   g_object_unref(pixbuf);
+--- a/chrome/browser/ui/libgtkui/gtk_ui.cc.gtk2_support	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/gtk_ui.cc	2018-09-01 00:30:15.710359496 +0200
+@@ -34,12 +34,9 @@
+ #include "chrome/browser/ui/libgtkui/gtk_key_bindings_handler.h"
+ #include "chrome/browser/ui/libgtkui/gtk_status_icon.h"
+ #include "chrome/browser/ui/libgtkui/gtk_util.h"
+-#include "chrome/browser/ui/libgtkui/native_theme_gtk.h"
+-#include "chrome/browser/ui/libgtkui/nav_button_provider_gtk.h"
+ #include "chrome/browser/ui/libgtkui/print_dialog_gtk.h"
+ #include "chrome/browser/ui/libgtkui/printing_gtk_util.h"
+ #include "chrome/browser/ui/libgtkui/select_file_dialog_impl.h"
+-#include "chrome/browser/ui/libgtkui/settings_provider_gtk.h"
+ #include "chrome/browser/ui/libgtkui/skia_utils_gtk.h"
+ #include "chrome/browser/ui/libgtkui/unity_service.h"
+ #include "chrome/browser/ui/libgtkui/x11_input_method_context_impl_gtk.h"
+@@ -75,6 +72,15 @@
+ #include "ui/views/linux_ui/window_button_order_observer.h"
+ #include "ui/views/resources/grit/views_resources.h"
+ 
++#if GTK_MAJOR_VERSION == 2
++#include "chrome/browser/ui/libgtkui/native_theme_gtk2.h"  // nogncheck
++#include "chrome/browser/ui/libgtkui/chrome_gtk_frame.h"   // nogncheck
++#elif GTK_MAJOR_VERSION == 3
++#include "chrome/browser/ui/libgtkui/native_theme_gtk.h"         // nogncheck
++#include "chrome/browser/ui/libgtkui/nav_button_provider_gtk.h"  // nogncheck
++#include "chrome/browser/ui/libgtkui/settings_provider_gtk.h"    // nogncheck
++#endif
++
+ #if defined(USE_GIO)
+ #include "chrome/browser/ui/libgtkui/settings_provider_gsettings.h"
+ #endif
+@@ -134,6 +139,49 @@
+         width, height, width * 4);
+     cairo_t* cr = cairo_create(surface);
+ 
++#if GTK_MAJOR_VERSION == 2
++    // Create a temporary GTK button to snapshot
++    GtkWidget* window = gtk_offscreen_window_new();
++    GtkWidget* button = gtk_toggle_button_new();
++
++    if (state_ == ui::NativeTheme::kPressed)
++      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), true);
++    else if (state_ == ui::NativeTheme::kDisabled)
++      gtk_widget_set_sensitive(button, false);
++
++    gtk_widget_set_size_request(button, width, height);
++    gtk_container_add(GTK_CONTAINER(window), button);
++
++    if (is_blue_)
++      TurnButtonBlue(button);
++
++    gtk_widget_show_all(window);
++
++    if (focus_)
++      GTK_WIDGET_SET_FLAGS(button, GTK_HAS_FOCUS);
++
++    int w, h;
++    GdkPixmap* pixmap;
++
++    {
++      // http://crbug.com/346740
++      ANNOTATE_SCOPED_MEMORY_LEAK;
++      pixmap = gtk_widget_get_snapshot(button, nullptr);
++    }
++
++    gdk_drawable_get_size(GDK_DRAWABLE(pixmap), &w, &h);
++    GdkColormap* colormap = gdk_drawable_get_colormap(pixmap);
++    GdkPixbuf* pixbuf = gdk_pixbuf_get_from_drawable(
++        nullptr, GDK_DRAWABLE(pixmap), colormap, 0, 0, 0, 0, w, h);
++
++    gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
++    cairo_paint(cr);
++
++    g_object_unref(pixbuf);
++    g_object_unref(pixmap);
++
++    gtk_widget_destroy(window);
++#else
+     ScopedStyleContext context = GetStyleContextFromCss(
+         is_blue_ ? "GtkButton#button.default.suggested-action"
+                  : "GtkButton#button");
+@@ -181,6 +229,7 @@
+       gtk_render_focus(context, cr, focus_rect.x(), focus_rect.y(),
+                        focus_rect.width(), focus_rect.height());
+     }
++#endif
+ 
+     cairo_destroy(cr);
+     cairo_surface_destroy(surface);
+@@ -245,15 +294,19 @@
+ // The unknown content type.
+ const char* kUnknownContentType = "application/octet-stream";
+ 
++#if GTK_MAJOR_VERSION > 2
+ using GdkSetAllowedBackendsFn = void (*)(const gchar*);
+ // Place this function pointer in read-only memory after being resolved to
+ // prevent it being tampered with. See https://crbug.com/771365 for details.
+ PROTECTED_MEMORY_SECTION base::ProtectedMemory<GdkSetAllowedBackendsFn>
+     g_gdk_set_allowed_backends;
++#endif
+ 
+ std::unique_ptr<SettingsProvider> CreateSettingsProvider(GtkUi* gtk_ui) {
++#if GTK_MAJOR_VERSION == 3
+   if (GtkVersionCheck(3, 14))
+     return std::make_unique<SettingsProviderGtk>(gtk_ui);
++#endif
+ #if defined(USE_GIO)
+   return std::make_unique<SettingsProviderGSettings>(gtk_ui);
+ #else
+@@ -311,8 +364,10 @@
+ }
+ 
+ views::LinuxUI::NonClientWindowFrameAction GetDefaultMiddleClickAction() {
++#if GTK_MAJOR_VERSION == 3
+   if (GtkVersionCheck(3, 14))
+     return views::LinuxUI::WINDOW_FRAME_ACTION_NONE;
++#endif
+   std::unique_ptr<base::Environment> env(base::Environment::Create());
+   switch (base::nix::GetDesktopEnvironment(env.get())) {
+     case base::nix::DESKTOP_ENVIRONMENT_KDE4:
+@@ -327,6 +382,7 @@
+   }
+ }
+ 
++#if GTK_MAJOR_VERSION > 2
+ // COLOR_TOOLBAR_TOP_SEPARATOR represents the border between tabs and the
+ // frame, as well as the border between tabs and the toolbar.  For this
+ // reason, it is difficult to calculate the One True Color that works well on
+@@ -377,6 +433,7 @@
+   border.l = l;
+   return HSLToSkColor(border, a * 0xff);
+ }
++#endif
+ 
+ }  // namespace
+ 
+@@ -387,6 +444,7 @@
+       GetDefaultMiddleClickAction();
+   window_frame_actions_[WINDOW_FRAME_ACTION_SOURCE_RIGHT_CLICK] =
+       views::LinuxUI::WINDOW_FRAME_ACTION_MENU;
++#if GTK_MAJOR_VERSION > 2
+   // Force Gtk to use Xwayland if it would have used wayland.  libgtkui assumes
+   // the use of X11 (eg. X11InputMethodContextImplGtk) and will crash under
+   // other backends.
+@@ -399,13 +457,21 @@
+     DCHECK(*g_gdk_set_allowed_backends);
+   if (*g_gdk_set_allowed_backends)
+     base::UnsanitizedCfiCall(g_gdk_set_allowed_backends)("x11");
++#endif
++#if GTK_MAJOR_VERSION >= 3
+   // Avoid GTK initializing atk-bridge, and let AuraLinux implementation
+   // do it once it is ready.
+   std::unique_ptr<base::Environment> env(base::Environment::Create());
+   env->SetVar("NO_AT_BRIDGE", "1");
++#endif
+   GtkInitFromCommandLine(*base::CommandLine::ForCurrentProcess());
++#if GTK_MAJOR_VERSION == 2
++  native_theme_ = NativeThemeGtk2::instance();
++  fake_window_ = chrome_gtk_frame_new();
++#else
+   native_theme_ = NativeThemeGtk::instance();
+   fake_window_ = gtk_window_new(GTK_WINDOW_TOPLEVEL);
++#endif
+   gtk_widget_realize(fake_window_);
+ }
+ 
+@@ -886,6 +952,10 @@
+   thumb_active_color_ = SkColorSetRGB(244, 244, 244);
+   thumb_inactive_color_ = SkColorSetRGB(234, 234, 234);
+   track_color_ = SkColorSetRGB(211, 211, 211);
++
++  GetChromeStyleColor("scrollbar-slider-prelight-color", &thumb_active_color_);
++  GetChromeStyleColor("scrollbar-slider-normal-color", &thumb_inactive_color_);
++  GetChromeStyleColor("scrollbar-trough-color", &track_color_);
+ }
+ 
+ void GtkUi::LoadGtkValues() {
+@@ -897,6 +967,66 @@
+   UpdateDeviceScaleFactor();
+   UpdateCursorTheme();
+ 
++#if GTK_MAJOR_VERSION == 2
++  const color_utils::HSL kDefaultFrameShift = {-1, -1, 0.4};
++  SkColor frame_color =
++      native_theme_->GetSystemColor(ui::NativeTheme::kColorId_WindowBackground);
++  frame_color = color_utils::HSLShift(frame_color, kDefaultFrameShift);
++  GetChromeStyleColor("frame-color", &frame_color);
++  colors_[ThemeProperties::COLOR_FRAME] = frame_color;
++
++  GtkStyle* style = gtk_rc_get_style(fake_window_);
++  SkColor temp_color = color_utils::HSLShift(
++      GdkColorToSkColor(style->bg[GTK_STATE_INSENSITIVE]), kDefaultFrameShift);
++  GetChromeStyleColor("inactive-frame-color", &temp_color);
++  colors_[ThemeProperties::COLOR_FRAME_INACTIVE] = temp_color;
++
++  temp_color = color_utils::HSLShift(frame_color, kDefaultTintFrameIncognito);
++  GetChromeStyleColor("incognito-frame-color", &temp_color);
++  colors_[ThemeProperties::COLOR_FRAME_INCOGNITO] = temp_color;
++
++  temp_color =
++      color_utils::HSLShift(frame_color, kDefaultTintFrameIncognitoInactive);
++  GetChromeStyleColor("incognito-inactive-frame-color", &temp_color);
++  colors_[ThemeProperties::COLOR_FRAME_INCOGNITO_INACTIVE] = temp_color;
++
++  SkColor tab_color =
++      native_theme_->GetSystemColor(ui::NativeTheme::kColorId_DialogBackground);
++  SkColor label_color = native_theme_->GetSystemColor(
++      ui::NativeTheme::kColorId_LabelEnabledColor);
++
++  colors_[ThemeProperties::COLOR_TOOLBAR_BUTTON_ICON] =
++      color_utils::DeriveDefaultIconColor(label_color);
++
++  colors_[ThemeProperties::COLOR_TAB_TEXT] = label_color;
++  colors_[ThemeProperties::COLOR_BOOKMARK_TEXT] = label_color;
++  colors_[ThemeProperties::COLOR_BACKGROUND_TAB_TEXT] =
++      color_utils::BlendTowardOppositeLuma(label_color, 50);
++
++  inactive_selection_bg_color_ = native_theme_->GetSystemColor(
++      ui::NativeTheme::kColorId_TextfieldReadOnlyBackground);
++  inactive_selection_fg_color_ = native_theme_->GetSystemColor(
++      ui::NativeTheme::kColorId_TextfieldReadOnlyColor);
++
++  // We pick the text and background colors for the NTP out of the
++  // colors for a GtkEntry. We do this because GtkEntries background
++  // color is never the same as |tab_color|, is usually a white,
++  // and when it isn't a white, provides sufficient contrast to
++  // |tab_color|. Try this out with Darklooks, HighContrastInverse
++  // or ThinIce.
++  colors_[ThemeProperties::COLOR_NTP_BACKGROUND] =
++      native_theme_->GetSystemColor(
++          ui::NativeTheme::kColorId_TextfieldDefaultBackground);
++  colors_[ThemeProperties::COLOR_NTP_TEXT] = native_theme_->GetSystemColor(
++      ui::NativeTheme::kColorId_TextfieldDefaultColor);
++  // The NTP header is the color that surrounds the current active
++  // thumbnail on the NTP, and acts as the border of the "Recent
++  // Links" box. It would be awesome if they were separated so we
++  // could use GetBorderColor() for the border around the "Recent
++  // Links" section, but matching the frame color is more important.
++  colors_[ThemeProperties::COLOR_NTP_HEADER] =
++      colors_[ThemeProperties::COLOR_FRAME];
++#else
+   SkColor tab_color = GetBgColor("");
+   SkColor tab_text_color = GetFgColor("GtkLabel");
+ 
+@@ -1062,6 +1192,7 @@
+           toolbar_top_separator_inactive;
+     }
+   }
++#endif
+ 
+   colors_[ThemeProperties::COLOR_TOOLBAR] = tab_color;
+   colors_[ThemeProperties::COLOR_CONTROL_BACKGROUND] = tab_color;
+@@ -1151,6 +1282,21 @@
+   g_object_unref(fake_label);
+ }
+ 
++bool GtkUi::GetChromeStyleColor(const char* style_property,
++                                SkColor* ret_color) const {
++#if GTK_MAJOR_VERSION == 2
++  GdkColor* style_color = nullptr;
++  gtk_widget_style_get(fake_window_, style_property, &style_color, nullptr);
++  if (style_color) {
++    *ret_color = GdkColorToSkColor(*style_color);
++    gdk_color_free(style_color);
++    return true;
++  }
++#endif
++
++  return false;
++}
++
+ void GtkUi::ResetStyle() {
+   LoadGtkValues();
+   native_theme_->NotifyObservers();
+@@ -1160,12 +1306,19 @@
+   if (display::Display::HasForceDeviceScaleFactor())
+     return display::Display::GetForcedDeviceScaleFactor();
+ 
++#if GTK_MAJOR_VERSION == 2
++  GtkSettings* gtk_settings = gtk_settings_get_default();
++  gint gtk_dpi = -1;
++  g_object_get(gtk_settings, "gtk-xft-dpi", &gtk_dpi, nullptr);
++  const float scale_factor = gtk_dpi / (1024 * kDefaultDPI);
++#else
+   GdkScreen* screen = gdk_screen_get_default();
+   gint scale = gtk_widget_get_scale_factor(fake_window_);
+   DCHECK_GT(scale, 0);
+   gdouble resolution = gdk_screen_get_resolution(screen);
+   const float scale_factor =
+       resolution <= 0 ? scale : resolution * scale / kDefaultDPI;
++#endif
+ 
+   // Blacklist scaling factors <120% (crbug.com/484400) and round
+   // to 1 decimal to prevent rendering problems (crbug.com/485183).
+--- a/chrome/browser/ui/libgtkui/gtk_ui.h.gtk2_support	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/gtk_ui.h	2018-09-02 16:01:58.299489588 +0200
+@@ -145,6 +145,10 @@
+   // Updates |default_font_*|.
+   void UpdateDefaultFont();
+ 
++  // Gets a ChromeGtkFrame theme color; returns true on success.  No-op on gtk3.
++  bool GetChromeStyleColor(const char* sytle_property,
++                           SkColor* ret_color) const;
++
+   float GetRawDeviceScaleFactor();
+ 
+   ui::NativeTheme* native_theme_;
+--- a/chrome/browser/ui/libgtkui/gtk_util.cc.gtk2_support	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/gtk_util.cc	2018-08-29 15:55:22.353870282 +0200
+@@ -169,8 +169,12 @@
+ }
+ 
+ void TurnButtonBlue(GtkWidget* button) {
++#if GTK_MAJOR_VERSION == 2
++  gtk_widget_set_can_default(button, true);
++#else
+   gtk_style_context_add_class(gtk_widget_get_style_context(button),
+                               "suggested-action");
++#endif
+ }
+ 
+ void SetGtkTransientForAura(GtkWidget* dialog, aura::Window* parent) {
+@@ -215,6 +219,7 @@
+   }
+ }
+ 
++#if GTK_MAJOR_VERSION > 2
+ namespace {
+ 
+ float GetDeviceScaleFactor() {
+@@ -622,5 +627,6 @@
+   gtk_render_frame(context, surface.cairo(), 0, 0, w, h);
+   return surface.GetAveragePixelValue(false);
+ }
++#endif
+ 
+ }  // namespace libgtkui
+--- a/chrome/browser/ui/libgtkui/gtk_util.h.gtk2_support	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/gtk_util.h	2018-09-02 16:04:22.159824953 +0200
+@@ -83,6 +83,7 @@
+                        std::vector<views::FrameButton>* leading_buttons,
+                        std::vector<views::FrameButton>* trailing_buttons);
+ 
++#if GTK_MAJOR_VERSION > 2
+ void* GetGdkSharedLibrary();
+ void* GetGtkSharedLibrary();
+ 
+@@ -199,6 +200,7 @@
+ 
+ // Get the color of the GtkSeparator specified by |css_selector|.
+ SkColor GetSeparatorColor(const std::string& css_selector);
++#endif
+ 
+ }  // namespace libgtkui
+ 
+--- /dev/null	2018-08-24 20:04:13.670821848 +0200
++++ b/chrome/browser/ui/libgtkui/native_theme_gtk2.cc	2018-08-29 15:55:22.354870263 +0200
+@@ -0,0 +1,474 @@
++// Copyright (c) 2013 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/libgtkui/native_theme_gtk2.h"
++
++#include <gtk/gtk.h>
++
++#include "chrome/browser/ui/libgtkui/chrome_gtk_frame.h"
++#include "chrome/browser/ui/libgtkui/chrome_gtk_menu_subclasses.h"
++#include "chrome/browser/ui/libgtkui/gtk_ui.h"
++#include "chrome/browser/ui/libgtkui/gtk_util.h"
++#include "chrome/browser/ui/libgtkui/skia_utils_gtk.h"
++#include "third_party/skia/include/core/SkColor.h"
++#include "ui/gfx/color_palette.h"
++#include "ui/gfx/color_utils.h"
++#include "ui/gfx/geometry/rect.h"
++#include "ui/gfx/geometry/size.h"
++#include "ui/gfx/path.h"
++#include "ui/gfx/skia_util.h"
++#include "ui/native_theme/common_theme.h"
++#include "ui/native_theme/native_theme_aura.h"
++#include "ui/native_theme/native_theme_dark_aura.h"
++
++namespace libgtkui {
++
++namespace {
++
++enum WidgetState {
++  NORMAL = 0,
++  ACTIVE = 1,
++  PRELIGHT = 2,
++  SELECTED = 3,
++  INSENSITIVE = 4,
++};
++
++// Same order as enum WidgetState above
++const GtkStateType stateMap[] = {
++    GTK_STATE_NORMAL,   GTK_STATE_ACTIVE,      GTK_STATE_PRELIGHT,
++    GTK_STATE_SELECTED, GTK_STATE_INSENSITIVE,
++};
++
++SkColor GetFgColor(GtkWidget* widget, WidgetState state) {
++  return GdkColorToSkColor(gtk_rc_get_style(widget)->fg[stateMap[state]]);
++}
++SkColor GetBgColor(GtkWidget* widget, WidgetState state) {
++  return GdkColorToSkColor(gtk_rc_get_style(widget)->bg[stateMap[state]]);
++}
++
++SkColor GetTextColor(GtkWidget* widget, WidgetState state) {
++  return GdkColorToSkColor(gtk_rc_get_style(widget)->text[stateMap[state]]);
++}
++SkColor GetTextAAColor(GtkWidget* widget, WidgetState state) {
++  return GdkColorToSkColor(gtk_rc_get_style(widget)->text_aa[stateMap[state]]);
++}
++SkColor GetBaseColor(GtkWidget* widget, WidgetState state) {
++  return GdkColorToSkColor(gtk_rc_get_style(widget)->base[stateMap[state]]);
++}
++
++}  // namespace
++
++// static
++NativeThemeGtk2* NativeThemeGtk2::instance() {
++  CR_DEFINE_STATIC_LOCAL(NativeThemeGtk2, s_native_theme, ());
++  return &s_native_theme;
++}
++
++// Constructors automatically called
++NativeThemeGtk2::NativeThemeGtk2() {}
++// This doesn't actually get called
++NativeThemeGtk2::~NativeThemeGtk2() {}
++
++void NativeThemeGtk2::PaintMenuPopupBackground(
++    cc::PaintCanvas* canvas,
++    const gfx::Size& size,
++    const MenuBackgroundExtraParams& menu_background) const {
++  if (menu_background.corner_radius > 0) {
++    cc::PaintFlags flags;
++    flags.setStyle(cc::PaintFlags::kFill_Style);
++    flags.setAntiAlias(true);
++    flags.setColor(GetSystemColor(kColorId_MenuBackgroundColor));
++
++    gfx::Path path;
++    SkRect rect = SkRect::MakeWH(SkIntToScalar(size.width()),
++                                 SkIntToScalar(size.height()));
++    SkScalar radius = SkIntToScalar(menu_background.corner_radius);
++    SkScalar radii[8] = {radius, radius, radius, radius,
++                         radius, radius, radius, radius};
++    path.addRoundRect(rect, radii);
++
++    canvas->drawPath(path, flags);
++  } else {
++    canvas->drawColor(GetSystemColor(kColorId_MenuBackgroundColor),
++                      SkBlendMode::kSrc);
++  }
++}
++
++void NativeThemeGtk2::PaintMenuItemBackground(
++    cc::PaintCanvas* canvas,
++    State state,
++    const gfx::Rect& rect,
++    const MenuItemExtraParams& menu_item) const {
++  SkColor color;
++  cc::PaintFlags flags;
++  switch (state) {
++    case NativeTheme::kNormal:
++    case NativeTheme::kDisabled:
++      color = GetSystemColor(NativeTheme::kColorId_MenuBackgroundColor);
++      flags.setColor(color);
++      break;
++    case NativeTheme::kHovered:
++      color =
++          GetSystemColor(NativeTheme::kColorId_FocusedMenuItemBackgroundColor);
++      flags.setColor(color);
++      break;
++    default:
++      NOTREACHED() << "Invalid state " << state;
++      break;
++  }
++  if (menu_item.corner_radius > 0) {
++    const SkScalar radius = SkIntToScalar(menu_item.corner_radius);
++    canvas->drawRoundRect(gfx::RectToSkRect(rect), radius, radius, flags);
++    return;
++  }
++  canvas->drawRect(gfx::RectToSkRect(rect), flags);
++}
++
++SkColor NativeThemeGtk2::GetSystemColor(ColorId color_id) const {
++  const SkColor kPositiveTextColor = SkColorSetRGB(0x0b, 0x80, 0x43);
++  const SkColor kNegativeTextColor = SkColorSetRGB(0xc5, 0x39, 0x29);
++
++  switch (color_id) {
++    // Windows
++    case kColorId_WindowBackground:
++      return GetBgColor(GetWindow(), SELECTED);
++
++    // Dialogs
++    case kColorId_DialogBackground:
++    case kColorId_BubbleBackground:
++      return GetBgColor(GetWindow(), NORMAL);
++
++    // FocusableBorder
++    case kColorId_FocusedBorderColor:
++      return GetBgColor(GetEntry(), SELECTED);
++    case kColorId_UnfocusedBorderColor:
++      return GetTextAAColor(GetEntry(), NORMAL);
++
++    // MenuItem
++    case kColorId_SelectedMenuItemForegroundColor:
++      return GetTextColor(GetMenuItem(), SELECTED);
++    case kColorId_FocusedMenuItemBackgroundColor:
++      return GetBgColor(GetMenuItem(), SELECTED);
++
++    case kColorId_EnabledMenuItemForegroundColor:
++      return GetTextColor(GetMenuItem(), NORMAL);
++    case kColorId_MenuItemMinorTextColor:
++    case kColorId_DisabledMenuItemForegroundColor:
++      return GetTextColor(GetMenuItem(), INSENSITIVE);
++    case kColorId_MenuBorderColor:
++    case kColorId_MenuSeparatorColor:
++      return GetTextColor(GetMenuItem(), INSENSITIVE);
++    case kColorId_MenuBackgroundColor:
++      return GetBgColor(GetMenu(), NORMAL);
++    case kColorId_TouchableMenuItemLabelColor:
++    case kColorId_ActionableSubmenuVerticalSeparatorColor:
++      return kInvalidColorIdColor;
++
++    // Label
++    case kColorId_LabelEnabledColor:
++      return GetTextColor(GetEntry(), NORMAL);
++    case kColorId_LabelDisabledColor:
++      return GetTextColor(GetLabel(), INSENSITIVE);
++    case kColorId_LabelTextSelectionColor:
++      return GetTextColor(GetLabel(), SELECTED);
++    case kColorId_LabelTextSelectionBackgroundFocused:
++      return GetBaseColor(GetLabel(), SELECTED);
++
++    // Link
++    case kColorId_LinkDisabled:
++      return SkColorSetA(GetSystemColor(kColorId_LinkEnabled), 0xBB);
++    case kColorId_LinkEnabled: {
++      SkColor link_color = SK_ColorTRANSPARENT;
++      GdkColor* style_color = nullptr;
++      gtk_widget_style_get(GetWindow(), "link-color", &style_color, nullptr);
++      if (style_color) {
++        link_color = GdkColorToSkColor(*style_color);
++        gdk_color_free(style_color);
++      }
++      if (link_color != SK_ColorTRANSPARENT)
++        return link_color;
++      // Default color comes from gtklinkbutton.c.
++      return SkColorSetRGB(0x00, 0x00, 0xEE);
++    }
++    case kColorId_LinkPressed:
++      return SK_ColorRED;
++
++    // Separator
++    case kColorId_SeparatorColor:
++      return GetFgColor(GetSeparator(), INSENSITIVE);
++
++    // Button
++    case kColorId_ButtonEnabledColor:
++      return GetTextColor(GetButton(), NORMAL);
++    case kColorId_BlueButtonEnabledColor:
++      return GetTextColor(GetBlueButton(), NORMAL);
++    case kColorId_ButtonDisabledColor:
++      return GetTextColor(GetButton(), INSENSITIVE);
++    case kColorId_BlueButtonDisabledColor:
++      return GetTextColor(GetBlueButton(), INSENSITIVE);
++    case kColorId_ButtonHoverColor:
++      return GetTextColor(GetButton(), PRELIGHT);
++    case kColorId_BlueButtonHoverColor:
++      return GetTextColor(GetBlueButton(), PRELIGHT);
++    case kColorId_BlueButtonPressedColor:
++      return GetTextColor(GetBlueButton(), ACTIVE);
++    case kColorId_BlueButtonShadowColor:
++      return SK_ColorTRANSPARENT;
++    case kColorId_ProminentButtonColor:
++      return GetSystemColor(kColorId_LinkEnabled);
++    case kColorId_TextOnProminentButtonColor:
++      return GetTextColor(GetLabel(), SELECTED);
++    case kColorId_ButtonPressedShade:
++      return SK_ColorTRANSPARENT;
++
++    // TabbedPane
++    case ui::NativeTheme::kColorId_TabTitleColorActive:
++      return GetTextColor(GetEntry(), NORMAL);
++    case ui::NativeTheme::kColorId_TabTitleColorInactive:
++      return GetTextColor(GetLabel(), INSENSITIVE);
++    case ui::NativeTheme::kColorId_TabBottomBorder:
++      return GetTextColor(GetEntry(), NORMAL);
++
++    // Textfield
++    case kColorId_TextfieldDefaultColor:
++      return GetTextColor(GetEntry(), NORMAL);
++    case kColorId_TextfieldDefaultBackground:
++      return GetBaseColor(GetEntry(), NORMAL);
++
++    case kColorId_TextfieldReadOnlyColor:
++      return GetTextColor(GetEntry(), ACTIVE);
++    case kColorId_TextfieldReadOnlyBackground:
++      return GetBaseColor(GetEntry(), ACTIVE);
++    case kColorId_TextfieldSelectionColor:
++      return GetTextColor(GetEntry(), SELECTED);
++    case kColorId_TextfieldSelectionBackgroundFocused:
++      return GetBaseColor(GetEntry(), SELECTED);
++
++    // Tooltips
++    case kColorId_TooltipBackground:
++      return GetBgColor(GetTooltip(), NORMAL);
++    case kColorId_TooltipText:
++      return GetFgColor(GetTooltip(), NORMAL);
++
++    // Trees and Tables (implemented on GTK using the same class)
++    case kColorId_TableBackground:
++    case kColorId_TreeBackground:
++      return GetBgColor(GetTree(), NORMAL);
++    case kColorId_TableText:
++    case kColorId_TreeText:
++      return GetTextColor(GetTree(), NORMAL);
++    case kColorId_TableSelectedText:
++    case kColorId_TableSelectedTextUnfocused:
++    case kColorId_TreeSelectedText:
++    case kColorId_TreeSelectedTextUnfocused:
++      return GetTextColor(GetTree(), SELECTED);
++    case kColorId_TableSelectionBackgroundFocused:
++    case kColorId_TableSelectionBackgroundUnfocused:
++    case kColorId_TreeSelectionBackgroundFocused:
++    case kColorId_TreeSelectionBackgroundUnfocused:
++      return GetBgColor(GetTree(), SELECTED);
++    case kColorId_TableGroupingIndicatorColor:
++      return GetTextAAColor(GetTree(), NORMAL);
++
++    // Table Headers
++    case kColorId_TableHeaderText:
++      return GetTextColor(GetTree(), NORMAL);
++    case kColorId_TableHeaderBackground:
++      return GetBgColor(GetTree(), NORMAL);
++    case kColorId_TableHeaderSeparator:
++      return GetFgColor(GetSeparator(), INSENSITIVE);
++
++    // Results Table
++    case kColorId_ResultsTableNormalBackground:
++      return GetSystemColor(kColorId_TextfieldDefaultBackground);
++    case kColorId_ResultsTableHoveredBackground:
++      return color_utils::AlphaBlend(
++          GetSystemColor(kColorId_TextfieldDefaultBackground),
++          GetSystemColor(kColorId_TextfieldSelectionBackgroundFocused), 0x80);
++    case kColorId_ResultsTableSelectedBackground:
++      return GetSystemColor(kColorId_TextfieldSelectionBackgroundFocused);
++    case kColorId_ResultsTableNormalText:
++    case kColorId_ResultsTableHoveredText:
++      return GetSystemColor(kColorId_TextfieldDefaultColor);
++    case kColorId_ResultsTableSelectedText:
++      return GetSystemColor(kColorId_TextfieldSelectionColor);
++    case kColorId_ResultsTableNormalDimmedText:
++    case kColorId_ResultsTableHoveredDimmedText:
++      return color_utils::AlphaBlend(
++          GetSystemColor(kColorId_TextfieldDefaultColor),
++          GetSystemColor(kColorId_TextfieldDefaultBackground), 0x80);
++    case kColorId_ResultsTableSelectedDimmedText:
++      return color_utils::AlphaBlend(
++          GetSystemColor(kColorId_TextfieldSelectionColor),
++          GetSystemColor(kColorId_TextfieldDefaultBackground), 0x80);
++    case kColorId_ResultsTableNormalUrl:
++    case kColorId_ResultsTableHoveredUrl:
++      return NormalURLColor(GetSystemColor(kColorId_TextfieldDefaultColor));
++
++    case kColorId_ResultsTableSelectedUrl:
++      return SelectedURLColor(
++          GetSystemColor(kColorId_TextfieldSelectionColor),
++          GetSystemColor(kColorId_TextfieldSelectionBackgroundFocused));
++
++    case kColorId_ResultsTablePositiveText: {
++      return color_utils::GetReadableColor(kPositiveTextColor,
++                                           GetBaseColor(GetEntry(), NORMAL));
++    }
++    case kColorId_ResultsTablePositiveHoveredText: {
++      return color_utils::GetReadableColor(kPositiveTextColor,
++                                           GetBaseColor(GetEntry(), PRELIGHT));
++    }
++    case kColorId_ResultsTablePositiveSelectedText: {
++      return color_utils::GetReadableColor(kPositiveTextColor,
++                                           GetBaseColor(GetEntry(), SELECTED));
++    }
++    case kColorId_ResultsTableNegativeText: {
++      return color_utils::GetReadableColor(kNegativeTextColor,
++                                           GetBaseColor(GetEntry(), NORMAL));
++    }
++    case kColorId_ResultsTableNegativeHoveredText: {
++      return color_utils::GetReadableColor(kNegativeTextColor,
++                                           GetBaseColor(GetEntry(), PRELIGHT));
++    }
++    case kColorId_ResultsTableNegativeSelectedText: {
++      return color_utils::GetReadableColor(kNegativeTextColor,
++                                           GetBaseColor(GetEntry(), SELECTED));
++    }
++
++    // Throbber
++    case kColorId_ThrobberSpinningColor:
++    case kColorId_ThrobberLightColor:
++      return GetSystemColor(kColorId_TextfieldSelectionBackgroundFocused);
++
++    case kColorId_ThrobberWaitingColor:
++      return color_utils::AlphaBlend(
++          GetSystemColor(kColorId_TextfieldSelectionBackgroundFocused),
++          GetBgColor(GetWindow(), NORMAL), 0x80);
++
++    // Alert icons
++    // Just fall back to the same colors as Aura.
++    case kColorId_AlertSeverityLow:
++    case kColorId_AlertSeverityMedium:
++    case kColorId_AlertSeverityHigh: {
++      ui::NativeTheme* fallback_theme =
++          color_utils::IsDark(GetTextColor(GetEntry(), NORMAL))
++              ? ui::NativeTheme::GetInstanceForNativeUi()
++              : ui::NativeThemeDarkAura::instance();
++      return fallback_theme->GetSystemColor(color_id);
++    }
++
++    case kColorId_NumColors:
++      NOTREACHED();
++      break;
++  }
++
++  return kInvalidColorIdColor;
++}
++
++GtkWidget* NativeThemeGtk2::GetWindow() const {
++  static GtkWidget* fake_window = nullptr;
++
++  if (!fake_window) {
++    fake_window = chrome_gtk_frame_new();
++    gtk_widget_realize(fake_window);
++  }
++
++  return fake_window;
++}
++
++GtkWidget* NativeThemeGtk2::GetEntry() const {
++  static GtkWidget* fake_entry = nullptr;
++
++  if (!fake_entry) {
++    fake_entry = gtk_entry_new();
++
++    // The fake entry needs to be in the window so it can be realized so we can
++    // use the computed parts of the style.
++    gtk_container_add(GTK_CONTAINER(GetWindow()), fake_entry);
++    gtk_widget_realize(fake_entry);
++  }
++
++  return fake_entry;
++}
++
++GtkWidget* NativeThemeGtk2::GetLabel() const {
++  static GtkWidget* fake_label = nullptr;
++
++  if (!fake_label)
++    fake_label = gtk_label_new("");
++
++  return fake_label;
++}
++
++GtkWidget* NativeThemeGtk2::GetButton() const {
++  static GtkWidget* fake_button = nullptr;
++
++  if (!fake_button)
++    fake_button = gtk_button_new();
++
++  return fake_button;
++}
++
++GtkWidget* NativeThemeGtk2::GetBlueButton() const {
++  static GtkWidget* fake_bluebutton = nullptr;
++
++  if (!fake_bluebutton) {
++    fake_bluebutton = gtk_button_new();
++    TurnButtonBlue(fake_bluebutton);
++  }
++
++  return fake_bluebutton;
++}
++
++GtkWidget* NativeThemeGtk2::GetTree() const {
++  static GtkWidget* fake_tree = nullptr;
++
++  if (!fake_tree)
++    fake_tree = gtk_tree_view_new();
++
++  return fake_tree;
++}
++
++GtkWidget* NativeThemeGtk2::GetTooltip() const {
++  static GtkWidget* fake_tooltip = nullptr;
++
++  if (!fake_tooltip) {
++    fake_tooltip = gtk_window_new(GTK_WINDOW_TOPLEVEL);
++    gtk_widget_set_name(fake_tooltip, "gtk-tooltip");
++    gtk_widget_realize(fake_tooltip);
++  }
++
++  return fake_tooltip;
++}
++
++GtkWidget* NativeThemeGtk2::GetMenu() const {
++  static GtkWidget* fake_menu = nullptr;
++
++  if (!fake_menu)
++    fake_menu = gtk_custom_menu_new();
++
++  return fake_menu;
++}
++
++GtkWidget* NativeThemeGtk2::GetMenuItem() const {
++  static GtkWidget* fake_menu_item = nullptr;
++
++  if (!fake_menu_item) {
++    fake_menu_item = gtk_custom_menu_item_new();
++    gtk_menu_shell_append(GTK_MENU_SHELL(GetMenu()), fake_menu_item);
++  }
++
++  return fake_menu_item;
++}
++
++GtkWidget* NativeThemeGtk2::GetSeparator() const {
++  static GtkWidget* fake_separator = nullptr;
++
++  if (!fake_separator)
++    fake_separator = gtk_hseparator_new();
++
++  return fake_separator;
++}
++
++}  // namespace libgtkui
+--- /dev/null	2018-08-24 20:04:13.670821848 +0200
++++ b/chrome/browser/ui/libgtkui/native_theme_gtk2.h	2018-08-29 15:55:22.354870263 +0200
+@@ -0,0 +1,55 @@
++// Copyright (c) 2013 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_LIBGTKUI_NATIVE_THEME_GTK2_H_
++#define CHROME_BROWSER_UI_LIBGTKUI_NATIVE_THEME_GTK2_H_
++
++#include "base/macros.h"
++#include "ui/native_theme/native_theme_base.h"
++
++typedef struct _GtkWidget GtkWidget;
++
++namespace libgtkui {
++
++// A version of NativeTheme that uses GTK2 supplied colours instead of the
++// default aura colours. Analogue to NativeThemeWin, except that can't be
++// compiled into the main chrome binary like the Windows code can.
++class NativeThemeGtk2 : public ui::NativeThemeBase {
++ public:
++  static NativeThemeGtk2* instance();
++
++  // Overridden from ui::NativeThemeBase:
++  SkColor GetSystemColor(ColorId color_id) const override;
++  void PaintMenuPopupBackground(
++      cc::PaintCanvas* canvas,
++      const gfx::Size& size,
++      const MenuBackgroundExtraParams& menu_background) const override;
++  void PaintMenuItemBackground(
++      cc::PaintCanvas* canvas,
++      State state,
++      const gfx::Rect& rect,
++      const MenuItemExtraParams& menu_item) const override;
++
++ private:
++  NativeThemeGtk2();
++  ~NativeThemeGtk2() override;
++
++  // Returns various widgets for theming use.
++  GtkWidget* GetWindow() const;
++  GtkWidget* GetEntry() const;
++  GtkWidget* GetLabel() const;
++  GtkWidget* GetButton() const;
++  GtkWidget* GetBlueButton() const;
++  GtkWidget* GetTree() const;
++  GtkWidget* GetTooltip() const;
++  GtkWidget* GetMenu() const;
++  GtkWidget* GetMenuItem() const;
++  GtkWidget* GetSeparator() const;
++
++  DISALLOW_COPY_AND_ASSIGN(NativeThemeGtk2);
++};
++
++}  // namespace libgtkui
++
++#endif  // CHROME_BROWSER_UI_LIBGTKUI_NATIVE_THEME_GTK2_H_
+--- a/chrome/browser/ui/libgtkui/app_indicator_icon.cc.gtk2_support	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/app_indicator_icon.cc	2018-09-02 16:16:52.197941328 +0200
+@@ -91,6 +91,18 @@
+ 
+   void* indicator_lib = nullptr;
+ 
++#if GTK_MAJOR_VERSION == 2
++  if (!indicator_lib)
++    indicator_lib = dlopen("libappindicator.so", RTLD_LAZY);
++
++  if (!indicator_lib)
++    indicator_lib = dlopen("libappindicator.so.1", RTLD_LAZY);
++
++  if (!indicator_lib)
++    indicator_lib = dlopen("libappindicator.so.0", RTLD_LAZY);
++#endif
++
++#if GTK_MAJOR_VERSION >= 3
+   if (!indicator_lib) {
+     indicator_lib =
+         dlopen("libappindicator" STRINGIZE(GTK_MAJOR_VERSION) ".so", RTLD_LAZY);
+@@ -100,6 +112,7 @@
+     indicator_lib = dlopen(
+         "libappindicator" STRINGIZE(GTK_MAJOR_VERSION) ".so.1", RTLD_LAZY);
+   }
++#endif
+ 
+   if (!indicator_lib)
+     return;
+--- /dev/null	2018-08-24 20:04:13.670821848 +0200
++++ b/ui/accessibility/platform/atk_util_auralinux_gtk2.cc	2018-08-29 15:55:22.357870208 +0200
+@@ -0,0 +1,84 @@
++// Copyright 2017 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include <glib-2.0/gmodule.h>
++
++#include "base/bind.h"
++#include "base/environment.h"
++#include "base/files/file_path.h"
++#include "base/logging.h"
++#include "base/strings/string_split.h"
++#include "base/strings/string_util.h"
++#include "base/task/post_task.h"
++#include "ui/accessibility/platform/atk_util_auralinux.h"
++
++typedef void (*GnomeAccessibilityModuleInitFunc)();
++
++const char kAtkBridgeModule[] = "atk-bridge";
++const char kAtkBridgePath[] = "gtk-2.0/modules/libatk-bridge.so";
++const char kAtkBridgeSymbolName[] = "gnome_accessibility_module_init";
++const char kGtkModules[] = "GTK_MODULES";
++
++namespace ui {
++
++// Returns a function pointer to be invoked on the main thread to init
++// the gnome accessibility module if it's enabled (nullptr otherwise).
++GnomeAccessibilityModuleInitFunc GetAccessibilityModuleInitFunc() {
++  base::AssertBlockingAllowed();
++
++  // Try to load libatk-bridge.so.
++  base::FilePath atk_bridge_path(ATK_LIB_DIR);
++  atk_bridge_path = atk_bridge_path.Append(kAtkBridgePath);
++  GModule* bridge = g_module_open(atk_bridge_path.value().c_str(),
++                                  static_cast<GModuleFlags>(0));
++  if (!bridge) {
++    VLOG(1) << "Unable to open module " << atk_bridge_path.value();
++    return nullptr;
++  }
++
++  GnomeAccessibilityModuleInitFunc init_func = nullptr;
++
++  if (!g_module_symbol(bridge, kAtkBridgeSymbolName, (gpointer*)&init_func)) {
++    VLOG(1) << "Unable to get symbol pointer from " << atk_bridge_path.value();
++    return nullptr;
++  }
++
++  DCHECK(init_func);
++  return init_func;
++}
++
++void FinishAccessibilityInitOnMainThread(
++    GnomeAccessibilityModuleInitFunc init_func) {
++  if (!init_func) {
++    VLOG(1) << "Will not enable ATK accessibility support.";
++    return;
++  }
++
++  init_func();
++}
++
++bool AtkUtilAuraLinux::PlatformShouldEnableAccessibility() {
++  std::unique_ptr<base::Environment> env(base::Environment::Create());
++  std::string gtk_modules;
++  if (!env->GetVar(kGtkModules, &gtk_modules))
++    return false;
++
++  for (const std::string& module :
++       base::SplitString(gtk_modules, ":", base::TRIM_WHITESPACE,
++                         base::SPLIT_WANT_NONEMPTY)) {
++    if (module == kAtkBridgeModule)
++      return true;
++  }
++  return false;
++}
++
++void AtkUtilAuraLinux::PlatformInitializeAsync() {
++  base::PostTaskWithTraitsAndReplyWithResult(
++      FROM_HERE,
++      {base::MayBlock(), base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
++      base::Bind(&GetAccessibilityModuleInitFunc),
++      base::Bind(&FinishAccessibilityInitOnMainThread));
++}
++
++}  // namespace ui
+--- a/ui/accessibility/BUILD.gn.gtk2_support	2018-08-28 06:11:24.000000000 +0200
++++ b/ui/accessibility/BUILD.gn	2018-09-02 16:25:36.244248804 +0200
+@@ -2,6 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++import("//build/config/linux/gtk/gtk.gni")
+ import("//build/config/linux/pkg_config.gni")
+ import("//build/config/features.gni")
+ import("//build/config/ui.gni")
+@@ -126,7 +127,6 @@
+     sources += [
+       "platform/atk_util_auralinux.cc",
+       "platform/atk_util_auralinux.h",
+-      "platform/atk_util_auralinux_gtk.cc",
+       "platform/ax_platform_atk_hyperlink.cc",
+       "platform/ax_platform_atk_hyperlink.h",
+       "platform/ax_platform_node_auralinux.cc",
+@@ -138,6 +138,11 @@
+     if (use_glib) {
+       configs += [ "//build/config/linux:glib" ]
+     }
++    if (gtk_version == 2) {
++      sources += [ "platform/atk_util_auralinux_gtk2.cc" ]
++    } else {
++      sources += [ "platform/atk_util_auralinux_gtk.cc" ]
++    }
+   }
+ 
+   if (use_aura) {
+--- a/ui/views/features.gni.gtk2_support	2018-08-28 06:11:26.000000000 +0200
++++ b/ui/views/features.gni	2018-09-02 16:28:06.750466728 +0200
+@@ -2,10 +2,12 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++import("//build/config/linux/gtk/gtk.gni")
+ import("//build/config/ui.gni")
+ 
+ declare_args() {
+   # Whether we should draw the minimize, maximize/restore, and close
+   # buttons using the system theme.  Only used on Linux.
+-  enable_native_window_nav_buttons = use_aura && !use_ozone && is_desktop_linux
++  enable_native_window_nav_buttons =
++      use_aura && !use_ozone && is_desktop_linux && (gtk_version >= 3)
+ }
+--- /dev/null	1970-01-01 00:00:00.324000000 +0000
++++ chromium-70.0.3528.4/chrome/browser/ui/libgtkui/chrome_gtk_frame.cc	2018-08-21 09:49:28.000000000 +0000
+@@ -0,0 +1,154 @@
++// Copyright (c) 2012 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/libgtkui/chrome_gtk_frame.h"
++
++G_GNUC_BEGIN_IGNORE_DEPRECATIONS
++
++G_BEGIN_DECLS
++
++// MetaFrames declaration
++G_DEFINE_TYPE(MetaFrames, meta_frames, GTK_TYPE_WINDOW)
++
++static void meta_frames_class_init(MetaFramesClass* frames_class) {
++  // Noop since we don't declare anything.
++}
++
++static void meta_frames_init(MetaFrames* button) {
++}
++
++
++// ChromeGtkFrame declaration
++G_DEFINE_TYPE(ChromeGtkFrame, chrome_gtk_frame, meta_frames_get_type())
++
++static void chrome_gtk_frame_class_init(ChromeGtkFrameClass* frame_class) {
++  GtkWidgetClass* widget_class = reinterpret_cast<GtkWidgetClass*>(frame_class);
++
++  // Frame tints:
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "frame-color",
++          "Frame Color",
++          "The color that the chrome frame will be. (If unspecified, "
++            " Chrome will take ChromeGtkFrame::bg[SELECTED] and slightly darken"
++            " it.)",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "inactive-frame-color",
++          "Inactive Frame Color",
++          "The color that the inactive chrome frame will be. (If"
++            " unspecified, Chrome will take ChromeGtkFrame::bg[INSENSITIVE]"
++            " and slightly darken it.)",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "incognito-frame-color",
++          "Incognito Frame Color",
++          "The color that the incognito frame will be. (If unspecified,"
++            " Chrome will take the frame color and tint it by Chrome's default"
++            " incognito tint.)",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "incognito-inactive-frame-color",
++          "Incognito Inactive Frame Color",
++          "The color that the inactive incognito frame will be. (If"
++            " unspecified, Chrome will take the frame color and tint it by"
++            " Chrome's default incognito tint.)",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++
++  // Frame gradient control:
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_int(
++          "frame-gradient-size",
++          "Chrome Frame Gradient Size",
++          "The size of the gradient on top of the frame image. Specify 0 to"
++            " make the frame a solid color.",
++          0,      // 0 disables the gradient
++          128,    // The frame image is only up to 128 pixels tall.
++          16,     // By default, gradients are 16 pixels high.
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "frame-gradient-color",
++          "Frame Gradient Color",
++          "The top color of the chrome frame gradient. (If unspecified,"
++            " chrome will create a lighter tint of frame-color",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "inactive-frame-gradient-color",
++          "Inactive Frame Gradient Color",
++          "The top color of the inactive chrome frame gradient. (If"
++            " unspecified, chrome will create a lighter tint of frame-color",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "incognito-frame-gradient-color",
++          "Incognito Frame Gradient Color",
++          "The top color of the incognito chrome frame gradient. (If"
++            " unspecified, chrome will create a lighter tint of frame-color",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "incognito-inactive-frame-gradient-color",
++          "Incognito Inactive Frame Gradient Color",
++          "The top color of the incognito inactive chrome frame gradient. (If"
++            " unspecified, chrome will create a lighter tint of frame-color",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++
++  // Scrollbar color properties:
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "scrollbar-slider-prelight-color",
++          "Scrollbar Slider Prelight Color",
++          "The color applied to the mouse is above the tab",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "scrollbar-slider-normal-color",
++          "Scrollbar Slider Normal Color",
++          "The color applied to the slider normally",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++  gtk_widget_class_install_style_property(
++      widget_class,
++      g_param_spec_boxed(
++          "scrollbar-trough-color",
++          "Scrollbar Trough Color",
++          "The background color of the slider track",
++          GDK_TYPE_COLOR,
++          G_PARAM_READABLE));
++}
++
++static void chrome_gtk_frame_init(ChromeGtkFrame* frame) {
++}
++
++GtkWidget* chrome_gtk_frame_new(void) {
++  return GTK_WIDGET(g_object_new(chrome_gtk_frame_get_type(), "type",
++                                 GTK_WINDOW_TOPLEVEL, nullptr));
++}
++
++G_END_DECLS
+--- /dev/null	1970-01-01 00:00:00.324000000 +0000
++++ chromium-70.0.3528.4/chrome/browser/ui/libgtkui/chrome_gtk_frame.h	2018-08-21 09:49:28.000000000 +0000
+@@ -0,0 +1,54 @@
++// Copyright (c) 2012 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_LIBGTKUI_CHROME_GTK_FRAME_H_
++#define CHROME_BROWSER_UI_LIBGTKUI_CHROME_GTK_FRAME_H_
++
++#include <gtk/gtk.h>
++
++G_BEGIN_DECLS
++
++// This file declares two subclasses of GtkWindow for easier gtk+ theme
++// integration.
++//
++// The first is "MetaFrames," which is (was?) the name of a gobject class in
++// the metacity window manager. To actually get at those values, we need to
++// have an object whose gobject class name string matches the definitions in
++// the gtkrc file. MetaFrames derives from GtkWindow.
++//
++// Metaframes can not be instantiated. It has no constructor; instantiate
++// ChromeGtkFrame instead.
++typedef struct _MetaFrames       MetaFrames;
++typedef struct _MetaFramesClass  MetaFramesClass;
++
++struct _MetaFrames {
++  GtkWindow window;
++};
++
++struct _MetaFramesClass {
++  GtkWindowClass parent_class;
++};
++
++
++// The second is ChromeGtkFrame, which defines a number of optional style
++// properties so theme authors can control how chromium appears in gtk-theme
++// mode.  It derives from MetaFrames in chrome so older themes that declare a
++// MetaFrames theme will still work. New themes should target this class.
++typedef struct _ChromeGtkFrame       ChromeGtkFrame;
++typedef struct _ChromeGtkFrameClass  ChromeGtkFrameClass;
++
++struct _ChromeGtkFrame {
++  MetaFrames frames;
++};
++
++struct _ChromeGtkFrameClass {
++  MetaFramesClass frames_class;
++};
++
++// Creates a GtkWindow object the the class name "ChromeGtkFrame".
++GtkWidget* chrome_gtk_frame_new();
++
++G_END_DECLS
++
++#endif  // CHROME_BROWSER_UI_LIBGTKUI_CHROME_GTK_FRAME_H_
+--- a/chrome/browser/ui/libgtkui/gtk_key_bindings_handler.cc.gtk2	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/gtk_key_bindings_handler.cc	2018-09-02 21:37:00.380595129 +0200
+@@ -77,7 +77,11 @@
+   // will be emitted.
+ 
+   gtk_bindings_activate_event(
++#if GTK_MAJOR_VERSION >= 3
+       G_OBJECT(handler_),
++#else
++      GTK_OBJECT(handler_), 
++#endif
+       &gdk_event);
+ 
+   bool matched = !edit_commands_.empty();
+--- a/chrome/browser/ui/libgtkui/x11_input_method_context_impl_gtk.cc.gtk2	2018-08-28 06:10:02.000000000 +0200
++++ b/chrome/browser/ui/libgtkui/x11_input_method_context_impl_gtk.cc	2018-09-02 21:47:37.698848448 +0200
+@@ -86,7 +86,10 @@
+   gint win_y = 0;
+   gdk_window_get_origin(event->key.window, &win_x, &win_y);
+ 
+-  gint factor = gdk_window_get_scale_factor(event->key.window);
++  gint factor = 1;
++#if GTK_MAJOR_VERSION >= 3
++  factor = gdk_window_get_scale_factor(event->key.window);
++#endif
+   gint caret_x = last_caret_bounds_.x() / factor;
+   gint caret_y = last_caret_bounds_.y() / factor;
+   gint caret_w = last_caret_bounds_.width() / factor;
