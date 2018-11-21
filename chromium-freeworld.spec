@@ -24,7 +24,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
@@ -98,7 +98,7 @@
 %bcond_without gtk2
 
 Name:       chromium-freeworld
-Version:    70.0.3538.77
+Version:    70.0.3538.102
 Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -145,7 +145,7 @@ Patch6:         optimize.patch
 Patch7:		fixes_mojo.patch
 Patch8:         third-party-cookies.patch
 Patch9:         vpx.patch
-Patch10:        libcxx.patch
+#Patch10:        libcxx.patch
 # VAAPI
 # https://chromium-review.googlesource.com/c/chromium/src/+/532294
 %if %{with vaapi}
@@ -400,6 +400,11 @@ mkdir -p third_party/test_fonts/test_fonts
 tar xmzvf %{S:17} -C third_party/test_fonts
 tar xmzvf %{S:19} -C third_party/test_fonts/test_fonts
 cp -f third_party/test_fonts/LICENSE third_party/test_fonts/test_fonts/
+git clone --depth 1 https://github.com/google/fonts.git
+# Arimo
+cp -rf $PWD/fonts/apache/arimo/* third_party/test_fonts/test_fonts
+# cousine
+cp -rf $PWD/fonts/apache/cousine/* third_party/test_fonts/test_fonts
 pushd third_party/test_fonts/test_fonts
 unzip %{S:15}
 tar xf %{S:16}
@@ -411,8 +416,8 @@ cp -a /usr/share/fonts/lohit-devanagari/Lohit-Devanagari.ttf /usr/share/fonts/lo
 cp -a /usr/share/fonts/google-noto-cjk/NotoSansCJKjp-Regular.otf /usr/share/fonts/google-noto/NotoSansKhmer-Regular.ttf .
 cp -a /usr/share/fonts/google-croscore/Tinos-*.ttf .
 cp -f %{S:18} .
-svn checkout --force https://github.com/google/fonts/trunk/apache/arimo . && rm -rf .svn
-svn checkout --force https://github.com/google/fonts/trunk/apache/cousine . && rm -rf .svn
+#svn checkout --force https://github.com/google/fonts/trunk/apache/arimo . && rm -rf .svn 
+#svn checkout --force https://github.com/google/fonts/trunk/apache/cousine . && rm -rf .svn
 popd
 #
 
@@ -1134,6 +1139,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Fri Nov 16 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.102-7
+- Updated to 70.0.3538.102
 
 * Wed Oct 17 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.67-7
 - Updated to 70.0.3538.67
