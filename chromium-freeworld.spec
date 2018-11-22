@@ -137,25 +137,26 @@ Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/
 Patch1:         chromium-widevine-r2.patch
 Patch2:         chromium-ffmpeg-ebp-r1.patch
 Patch3:         chromium-compiler-r4.patch
+%if %{with system_harfbuzz}
+Patch4:		chromium-harfbuzz-r0.patch
+%endif
 # Thanks Fedora
-#Patch4:         chromium-nacl-llvm-ar.patch
 Patch5:		chromium-pdfium-stdlib-r0.patch
 #Thanks Debian
 Patch6:         optimize.patch
 Patch7:		fixes_mojo.patch
 Patch8:         third-party-cookies.patch
 Patch9:         vpx.patch
-#Patch10:        libcxx.patch
 # VAAPI
 # https://chromium-review.googlesource.com/c/chromium/src/+/532294
 %if %{with vaapi}
-Patch11:       	cfi-vaapi-fix.patch
-Patch12:	chromium-vaapi-r21.patch
+Patch10:       	cfi-vaapi-fix.patch
+Patch11:	chromium-vaapi-r21.patch
 %endif
-Patch13:	chromium-nacl-llvm-ar.patch
-Patch14:	chromium-70.0.3538.67-sandbox-pie.patch
+Patch12:	chromium-nacl-llvm-ar.patch
+Patch13:	chromium-70.0.3538.67-sandbox-pie.patch
 # Thanks Mageia
-Patch15:	chromium-70-gtk2.patch
+Patch14:	chromium-70-gtk2.patch
 
 ExclusiveArch: x86_64 
 
