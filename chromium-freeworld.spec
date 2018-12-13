@@ -9,6 +9,7 @@
 #  [8] https://aur.archlinux.org/packages/chromium-gtk2/
 #  [9] https://github.com/RussianFedora/chromium/
 #  [10] http://svnweb.mageia.org/packages/cauldron/chromium-browser-stable/?pathrev=1321923
+#  [11] https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
 
 
 %global chromiumdir %{_libdir}/chromium
@@ -30,7 +31,11 @@
 %global debug_package %{nil}
 
 # vpx
+%if 0%{?fedora} >= 28
 %bcond_without system_libvpx
+%else
+%bcond_with system_libvpx
+%endif
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -67,13 +72,21 @@
 %bcond_with system_libxml2
 %endif
 
+# Component build
+# Component build. Setting to true compiles targets declared as "components"
+# as shared libraries loaded dynamically. This speeds up development time.
+# When false, components will be linked statically.
+# For more information see
+# https://chromium.googlesource.com/chromium/src/+/master/docs/component_build.md
+
+%bcond_without component_build
+
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
-%if 0%{?fedora} >= 29
+%if 0%{?fedora} >= 30 
 %bcond_without system_harfbuzz
 %else
-%bcond_with system_harfbuzz
+%bcond_with system_harfbuzz 
 %endif
-
 
 # Allow testing whether icu can be unbundled
 %bcond_with system_libicu
@@ -98,7 +111,7 @@
 %bcond_without gtk2
 
 Name:       chromium-freeworld
-Version:    70.0.3538.102
+Version:    70.0.3538.110
 Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -137,7 +150,7 @@ Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/
 Patch1:         chromium-widevine-r2.patch
 Patch2:         chromium-ffmpeg-ebp-r1.patch
 Patch3:         chromium-compiler-r4.patch
-%if %{with system_harfbuzz}
+%if %{with system_harfbuzz} 
 Patch4:		chromium-harfbuzz-r0.patch
 %endif
 # Thanks Fedora
@@ -146,7 +159,9 @@ Patch5:		chromium-pdfium-stdlib-r0.patch
 Patch6:         optimize.patch
 Patch7:		fixes_mojo.patch
 Patch8:         third-party-cookies.patch
+%if %{with system_libvpx}
 Patch9:         vpx.patch
+%endif
 # VAAPI
 # https://chromium-review.googlesource.com/c/chromium/src/+/532294
 %if %{with vaapi}
@@ -157,6 +172,7 @@ Patch12:	chromium-nacl-llvm-ar.patch
 Patch13:	chromium-70.0.3538.67-sandbox-pie.patch
 # Thanks Mageia
 Patch14:	chromium-70-gtk2.patch
+
 
 ExclusiveArch: x86_64 
 
@@ -265,7 +281,7 @@ BuildRequires: libicu-devel
 %endif
 # ffmpeg external conditional
 %if %{with system_ffmpeg}
-BuildRequires: ffmpeg-devel
+BuildRequires: ffmpeg-devel >= 4.1
 %endif
 %if %{with vaapi}
 BuildRequires:	libva-devel 
@@ -303,7 +319,7 @@ Requires: libva-intel-hybrid-driver
 Recommends: u2f-hidraw-policy
 %endif
 
-Provides: chromium >= %{version}
+Obsoletes: chromium 
 Recommends: chromium-pepper-flash
 Recommends: chromium-widevine
 
@@ -328,7 +344,7 @@ Summary: Shared libraries used by chromium (and chrome-remote-desktop)
 Requires: %{name}-libs-media%{_isa} = %{version}-%{release}
 %endif
 Provides: %{name}-libs%{_isa} = %{version}-%{release}
-Provides: chromium-libs >= 54
+Obsoletes: chromium-libs 
 
 %description libs
 Shared libraries used by chromium (and chrome-remote-desktop).
@@ -679,9 +695,11 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     		third_party/ply \
 %endif
 %if !%{with system_harfbuzz}
-    		third_party/harfbuzz-ng 
+    		third_party/harfbuzz-ng \
 %endif
-
+%if !%{with system_ffmpeg} 
+		third_party/ffmpeg 
+%endif
 
 python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %if %{with system_ffmpeg}
@@ -828,17 +846,27 @@ _flags+=(
     'enable_widevine=true'
     'enable_nacl=false'
     'enable_swiftshader=true'
+    'enable_hevc_demuxing=true'
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
+%if %{with system_ffmpeg}
+    'is_component_ffmpeg=true' 
+%endif
+%if %{with component_build}
+    'is_component_build=true'
+%endif
+%if %{with system_harfbuzz}
+    'use_system_harfbuzz=true'
+%else
+    'use_system_harfbuzz=false'
+%endif
 %if %{with gtk2}
     'gtk_version=2'
 %endif
 %ifarch x86_64
     'system_libdir="lib64"'
-%endif
-    'is_component_ffmpeg=true' 
-    'is_component_build=true'
+%endif 
     'symbol_level=0'
 %if %{with jumbo_unity}
     'use_jumbo_build=true'
@@ -849,7 +877,6 @@ _flags+=(
     'remove_webcore_debug_symbols=true'
 )
 
-# NOTE "is_component_build=false", enables headless. Change to "is_component_ffmpeg=false" ever.
 
 # Build files for Ninja #
 gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release 
@@ -875,7 +902,6 @@ ninja-build -C out/Release media/ffmpeg chrome -j$jobs
 ninja-build -C out/Release chrome -j$jobs 
 %endif
 %endif
-
 
 %install
 
@@ -1140,6 +1166,10 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Fri Nov 30 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.102-7
+- Updated to 70.0.3538.110
+- Tweaks enabled
 
 * Fri Nov 16 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.102-7
 - Updated to 70.0.3538.102

@@ -1,0 +1,23 @@
+diff -up chromium-70.0.3538.110/tools/gn/bootstrap/bootstrap.py.sysrootfix chromium-70.0.3538.110/tools/gn/bootstrap/bootstrap.py
+--- a/tools/gn/bootstrap/bootstrap.py.sysrootfix	2018-11-26 13:40:19.324713204 -0500
++++ b/tools/gn/bootstrap/bootstrap.py	2018-11-26 13:40:43.199180888 -0500
+@@ -46,10 +46,6 @@ def main(argv):
+       '--build-path',
+       help='The directory in which to build gn, '
+       'relative to the src directory. (eg. out/Release)')
+-  parser.add_option(
+-      '--with-sysroot',
+-      action='store_true',
+-      help='Download and build with the Debian sysroot.')
+   parser.add_option('-v', '--verbose', help='ignored')
+   options, args = parser.parse_args(argv)
+   if args:
+@@ -71,8 +67,6 @@ def main(argv):
+       '--no-last-commit-position',
+       '--out-path=' + gn_build_dir,
+   ]
+-  if not options.with_sysroot:
+-    cmd.append('--no-sysroot')
+   if options.debug:
+     cmd.append('--debug')
+   subprocess.check_call(cmd)
