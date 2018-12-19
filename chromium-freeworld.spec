@@ -25,17 +25,13 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 
 %global debug_package %{nil}
 
 # vpx
-%if 0%{?fedora} >= 28
 %bcond_without system_libvpx
-%else
-%bcond_with system_libvpx
-%endif
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -82,11 +78,7 @@
 %bcond_without component_build
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
-%if 0%{?fedora} >= 30 
-%bcond_without system_harfbuzz
-%else
-%bcond_with system_harfbuzz 
-%endif
+%bcond_without system_harfbuzz 
 
 # Allow testing whether icu can be unbundled
 %bcond_with system_libicu
@@ -108,10 +100,13 @@
 %bcond_without vaapi
 
 # Gtk2 conditional
-%bcond_without gtk2
+%bcond_with gtk2
+
+# re2 conditional
+%bcond_with re2_external
 
 Name:       chromium-freeworld
-Version:    70.0.3538.110
+Version:    71.0.3578.98
 Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -147,31 +142,22 @@ Source18:	https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf
 Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/third_party/gardiner_mod.tar.gz
 
 # Thanks Gentoo
-Patch1:         chromium-widevine-r2.patch
-Patch2:         chromium-ffmpeg-ebp-r1.patch
-Patch3:         chromium-compiler-r4.patch
-%if %{with system_harfbuzz} 
-Patch4:		chromium-harfbuzz-r0.patch
+Patch1:         chromium-widevine-r3.patch
+Patch2:         chromium-compiler-r7.patch
+Patch3:		chromium-71-gcc-0.patch
+%if 0%{?fedora} >= 30
+Patch4:		chromium-70.0.3538.77-harfbuzz2-fix.patch
 %endif
-# Thanks Fedora
-Patch5:		chromium-pdfium-stdlib-r0.patch
 #Thanks Debian
+Patch5:		vpx.patch
 Patch6:         optimize.patch
 Patch7:		fixes_mojo.patch
 Patch8:         third-party-cookies.patch
-%if %{with system_libvpx}
-Patch9:         vpx.patch
-%endif
+Patch9:         android.patch
 # VAAPI
-# https://chromium-review.googlesource.com/c/chromium/src/+/532294
 %if %{with vaapi}
-Patch10:       	cfi-vaapi-fix.patch
-Patch11:	chromium-vaapi-r21.patch
+Patch10:	chromium-vaapi.patch
 %endif
-Patch12:	chromium-nacl-llvm-ar.patch
-Patch13:	chromium-70.0.3538.67-sandbox-pie.patch
-# Thanks Mageia
-Patch14:	chromium-70-gtk2.patch
 
 
 ExclusiveArch: x86_64 
@@ -244,7 +230,9 @@ BuildRequires: opus-devel
 %if %{with system_libxml2}
 BuildRequires: pkgconfig(libxml-2.0)
 %endif
+%if %{with re2_external}
 BuildRequires: re2-devel
+%endif
 %if %{with system_openh264}
 BuildRequires: openh264-devel
 %endif
@@ -301,11 +289,14 @@ BuildRequires:	google-noto-sans-cjk-jp-fonts
 BuildRequires:	google-noto-sans-khmer-fonts
 BuildRequires:	google-croscore-tinos-fonts
 BuildRequires:	subversion
+BuildRequires:	at-spi2-core-devel
 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires: hicolor-icon-theme
+%if %{with re2_external}
 Requires: re2
+%endif
 Requires: %{name}-libs = %{version}-%{release}
 
 %if %{with vaapi}
@@ -623,6 +614,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/skia/third_party/vulkan \
 		third_party/smhasher \
 		third_party/spirv-headers \
+		third_party/SPIRV-Tools \
 		third_party/spirv-tools-angle \
 		third_party/sqlite \
 		third_party/swiftshader \
@@ -649,6 +641,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		v8/src/third_party/valgrind \
 		v8/src/third_party/utf8-decoder \
 		v8/third_party/inspector_protocol \
+		third_party/jsoncpp \
 		v8/third_party/v8 \
                 third_party/yasm \
 		base/third_party/libevent \
@@ -657,6 +650,9 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/opus \
 		third_party/speech-dispatcher \
 		third_party/test_fonts \
+%if !%{with re2_external}
+		third_party/re2 \
+%endif
 %if %{with remote_desktop}
 		third_party/sinonjs \
 		third_party/blanketjs \
@@ -720,8 +716,10 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %if %{with system_openh264}
     openh264 \
 %endif
-    re2 \
     snappy \
+%if %{with re2_external}
+    re2 \
+%endif
 %if %{with system_libicu}
     icu \
 %endif
@@ -766,6 +764,9 @@ ln -s %{python2_sitelib}/ply third_party/ply
 %if 0%{?fedora} >= 28 || %{with clang_bundle}
 sed -i \
     -e '/"-Wno-ignored-pragma-optimize"/d' build/config/compiler/BUILD.gn
+
+sed -i \
+    -e '/"-Wno-defaulted-function-deleted"/d' build/config/compiler/BUILD.gn
 %endif
 
 # Force script incompatible with Python 3 to use /usr/bin/python2
@@ -1166,6 +1167,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Dec 13 2018 - David Va <davidva AT tuta DOT io> 71.0.3578.98-7
+- Updated to 71.0.3578.98
 
 * Fri Nov 30 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.102-7
 - Updated to 70.0.3538.110
