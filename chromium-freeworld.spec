@@ -18,6 +18,7 @@
 %global __requires_exclude_from ^%{chromiumdir}/libffmpeg.*$
 %global __requires_exclude_from ^%{chromiumdir}/libmedia.*$
 
+
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_without devel_tools
 # Chromium users doesn't need chrome-remote-desktop
@@ -141,22 +142,25 @@ Source17:	https://chromium.googlesource.com/chromium/src.git/+archive/refs/heads
 Source18:	https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf
 Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/third_party/gardiner_mod.tar.gz
 
+# Thanks Arch Linux
+Patch1:         chromium-widevine.patch
 # Thanks Gentoo
-Patch1:         chromium-widevine-r3.patch
 Patch2:         chromium-compiler-r7.patch
 Patch3:		chromium-71-gcc-0.patch
+# Thanks Fedora
 %if 0%{?fedora} >= 30
 Patch4:		chromium-70.0.3538.77-harfbuzz2-fix.patch
 %endif
-#Thanks Debian
+# Thanks Debian
 Patch5:		vpx.patch
 Patch6:         optimize.patch
 Patch7:		fixes_mojo.patch
-Patch8:         third-party-cookies.patch
-Patch9:         android.patch
+Patch8:		third-party-cookies.patch
+Patch9:		android.patch
+Patch10:	widevine-locations.patch
 # VAAPI
 %if %{with vaapi}
-Patch10:	chromium-vaapi.patch
+Patch11:	chromium-vaapi.patch
 %endif
 
 
@@ -892,15 +896,15 @@ ninja-build -C out/Release remoting_all -j$jobs
 # HERE the real build
 %if %{with devel_tools}
 %if %{with system_ffmpeg}
-ninja-build -C out/Release media/ffmpeg chrome chrome_sandbox chromedriver -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver -j$jobs 
 %else
-ninja-build -C out/Release chrome chrome_sandbox chromedriver -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver -j$jobs 
 %endif
 %else
 %if %{with system_ffmpeg}
-ninja-build -C out/Release media/ffmpeg chrome -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
 %else
-ninja-build -C out/Release chrome -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm chrome -j$jobs 
 %endif
 %endif
 
@@ -1168,8 +1172,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %changelog
 
-* Thu Dec 13 2018 - David Va <davidva AT tuta DOT io> 71.0.3578.98-7
+* Sat Dec 22 2018 - David Va <davidva AT tuta DOT io> 71.0.3578.98-7
 - Updated to 71.0.3578.98
+- Widevine fix and conditional path in local (friendly with snaps and maybe flatpak)
 
 * Fri Nov 30 2018 - David Va <davidva AT tuta DOT io> 70.0.3538.102-7
 - Updated to 70.0.3538.110
