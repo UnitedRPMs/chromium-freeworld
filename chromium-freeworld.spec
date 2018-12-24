@@ -79,7 +79,11 @@
 %bcond_without component_build
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
+%if 0%{?fedora} <= 28
+%bcond_with system_harfbuzz 
+%else
 %bcond_without system_harfbuzz 
+%endif
 
 # Allow testing whether icu can be unbundled
 %bcond_with system_libicu
