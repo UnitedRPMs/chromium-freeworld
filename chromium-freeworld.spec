@@ -122,6 +122,8 @@ Source0:    https://commondatastorage.googleapis.com/chromium-browser-official/c
 %endif
 Source1:    chromium-latest.py
 Source2:    BUILD.gn
+# https://bugs.freedesktop.org/show_bug.cgi?id=106490
+Source3:    %{name}-drirc-disable-10bpc-color-configs.conf
 %if %{with remote_desktop}
 Source33:   chrome-remote-desktop.service
 %endif
@@ -998,6 +1000,9 @@ mkdir -p %{buildroot}/%{_unitdir}
 cp -a %{SOURCE33} %{buildroot}%{_unitdir}/
 sed -i 's|@@CRD_PATH@@|%{crd_path}|g' %{buildroot}/%{_unitdir}/chrome-remote-desktop.service
 %endif
+
+install -Dm644 %{S:3} \
+    %{buildroot}/%{_datadir}/drirc.d/10-chromium.conf
 
 # Mangling fix
 # bash
