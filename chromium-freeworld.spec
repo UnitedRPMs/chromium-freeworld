@@ -11,7 +11,7 @@
 #  [10] http://svnweb.mageia.org/packages/cauldron/chromium-browser-stable/?pathrev=1321923
 #  [11] https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
 
-
+%global _python_bytecompile_extra 1
 %global chromiumdir %{_libdir}/chromium
 %global crd_path %{_libdir}/chrome-remote-desktop
 # Do not check any ffmpeg or libmedia bundle files in libdir for requires
@@ -26,13 +26,10 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
-
-# vpx
-%bcond_without system_libvpx
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -79,10 +76,10 @@
 %bcond_without component_build
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
-%if 0%{?fedora} <= 28
-%bcond_with system_harfbuzz 
+%if 0%{?fedora} >= 30
+%bcond_without system_harfbuzz
 %else
-%bcond_without system_harfbuzz 
+%bcond_with system_harfbuzz
 %endif
 
 # Allow testing whether icu can be unbundled
@@ -111,8 +108,8 @@
 %bcond_with re2_external
 
 Name:       chromium-freeworld
-Version:    71.0.3578.98
-Release:    7%{?dist}
+Version:    72.0.3626.121
+Release:    6%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -150,23 +147,20 @@ Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/
 Patch1:         chromium-widevine.patch
 # Thanks Gentoo
 Patch2:         chromium-compiler-r7.patch
-Patch3:		chromium-71-gcc-0.patch
-# Thanks Fedora
-%if 0%{?fedora} >= 30
-Patch4:		chromium-70.0.3538.77-harfbuzz2-fix.patch
-%endif
 # Thanks Debian
-Patch5:		vpx.patch
-Patch6:         optimize.patch
-Patch7:		fixes_mojo.patch
-Patch8:		third-party-cookies.patch
-Patch9:		android.patch
-Patch10:	widevine-locations.patch
+Patch3:	widevine-locations.patch
 # VAAPI
 %if %{with vaapi}
-Patch11:	chromium-vaapi.patch
+Patch4:	chromium-vaapi.patch
+Patch5:	chromium-vaapi-relax-the-version-check-for-VA-API.patch
+Patch6:	chromium-enable-mojo-video-decoders-by-default.patch
+Patch7:	chromium-vaapi-fix-the-VA_CHECK_VERSION.patch
 %endif
-
+Patch8: chromium-skia-harmony.patch
+Patch9: chromium-webrtc-missing-header.patch
+Patch10: chromium-bootstrap-python2.patch
+Patch11: chromium-nacl-llvm-ar.patch
+Patch12: chromium-system-icu.patch
 
 ExclusiveArch: x86_64 
 
@@ -229,9 +223,7 @@ BuildRequires: harfbuzz-devel
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: libpng-devel
 # Chromium requires libvpx 1.5.0 and some non-default options
-%if %{with system_libvpx}
-BuildRequires: libvpx-devel
-%endif
+#BuildRequires: libvpx-devel
 BuildRequires: libwebp-devel
 BuildRequires: pkgconfig(libxslt)
 BuildRequires: opus-devel
@@ -319,6 +311,7 @@ Recommends: u2f-hidraw-policy
 %endif
 
 Obsoletes: chromium 
+Recommends: liberation-fonts
 Recommends: chromium-pepper-flash
 Recommends: chromium-widevine
 
@@ -480,7 +473,7 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
-find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
+# find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 
 
 # Avoid CFI failures with unbundled libxml
@@ -514,9 +507,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		net/third_party/quic \
 		net/third_party/spdy \
                 net/third_party/uri_template \
-		third_party/WebKit \
 		third_party/abseil-cpp \
-		third_party/analytics \
 		third_party/angle \
 		third_party/angle/src/common/third_party/base \
 		third_party/angle/src/common/third_party/smhasher \
@@ -553,6 +544,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/catapult/tracing/third_party/pako \
 		third_party/ced \
 		third_party/cld_3 \
+		third_party/closure_compiler \
 		third_party/crashpad \
 		third_party/crashpad/crashpad/third_party/zlib \
 		third_party/crc32c \
@@ -563,7 +555,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/flatbuffers \
 		third_party/flot \
 		third_party/freetype \
-		third_party/glslang-angle \
 		third_party/google_input_tools \
 		third_party/google_input_tools/third_party/closure_library \
 		third_party/google_input_tools/third_party/closure_library/third_party/closure \
@@ -571,12 +562,15 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/hunspell \
 		third_party/iccjpeg \
 		third_party/inspector_protocol \
+		third_party/jsoncpp \
 		third_party/jstemplate \
 		third_party/khronos \
 		third_party/leveldatabase \
 		third_party/libXNVCtrl \
 		third_party/libaddressinput \
 		third_party/libaom \
+		third_party/libaom/source/libaom/third_party/vector \
+		third_party/libaom/source/libaom/third_party/x86inc \
 		third_party/libjingle \
 		third_party/libphonenumber \
 		third_party/libsecret \
@@ -592,6 +586,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/mesa \
 		third_party/metrics_proto \
 		third_party/modp_b64 \
+		third_party/nasm \
 		third_party/node \
 		third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
 		third_party/openmax_dl \
@@ -623,7 +618,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/smhasher \
 		third_party/spirv-headers \
 		third_party/SPIRV-Tools \
-		third_party/spirv-tools-angle \
 		third_party/sqlite \
 		third_party/swiftshader \
 		third_party/swiftshader/third_party/llvm-subzero \
@@ -631,7 +625,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/unrar \
 		third_party/usrsctp \
 		third_party/vulkan \
-		third_party/vulkan-validation-layers \
 		third_party/web-animations-js \
 		third_party/webdriver \
 		third_party/webrtc \
@@ -649,15 +642,18 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		v8/src/third_party/valgrind \
 		v8/src/third_party/utf8-decoder \
 		v8/third_party/inspector_protocol \
-		third_party/jsoncpp \
 		v8/third_party/v8 \
                 third_party/yasm \
 		base/third_party/libevent \
 		third_party/xdg-utils \
-                third_party/adobe/flash \
-		third_party/opus \
+		third_party/yasm/run_yasm.py \
+                third_party/adobe \
 		third_party/speech-dispatcher \
+		third_party/usb_ids \
 		third_party/test_fonts \
+		third_party/angle/src/common/third_party/xxhash \
+		third_party/libvpx \
+		third_party/libvpx/source/libvpx/third_party/x86inc \
 %if !%{with re2_external}
 		third_party/re2 \
 %endif
@@ -666,23 +662,10 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/blanketjs \
 		third_party/qunit \
 %endif
-%if !%{with system_libicu}
     		third_party/icu \
    		base/third_party/icu/ \
-%endif
 %if !%{with system_jinja2}
     		third_party/jinja2 \
-%endif
-%if !%{with system_libvpx}
-		third_party/libvpx \
-    		third_party/libvpx/source/libvpx/third_party/googletest \
-    		third_party/libvpx/source/libvpx/third_party/libwebm \
-    		third_party/libvpx/source/libvpx/third_party/libyuv \
-		third_party/libaom/source/libaom/third_party/vector \
-    		third_party/libvpx/source/libvpx/third_party/x86inc \
-%else
-		third_party/libaom/source/libaom/third_party/vector \
-		third_party/libaom/source/libaom/third_party/x86inc \
 %endif
 %if %{with system_libxml2}
    		third_party/libxml/chromium \
@@ -733,13 +716,9 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %endif
     yasm \
     fontconfig \
-%if %{with system_libvpx}
-    libvpx \
-%endif
+    opus \
     zlib
 
-
-sed -i 's|//third_party/usb_ids|/usr/share/hwdata|g' device/usb/BUILD.gn
 
 # Don't use static libstdc++
 sed -i '/-static-libstdc++/d' tools/gn/build/gen.py
@@ -756,25 +735,13 @@ ln -s %{python2_sitelib}/ply third_party/ply
 %endif
 
 
-# Remove compiler flags not supported by our system clang
-%if 0%{?fedora} <= 27
-  sed -i \
-    -e '/"-Wno-enum-compare-switch"/d' \
-    -e '/"-Wno-null-pointer-arithmetic"/d' \
-    -e '/"-Wno-enum-compare-switch"/d' \
-    -e '/"-Wno-tautological-unsigned-zero-compare"/d' \
-    -e '/"-Wno-tautological-constant-compare"/d' \
-    -e '/"-Wno-unused-lambda-capture"/d' \
-    -e '/"-Wunused-lambda-capture"/d' \
-    build/config/compiler/BUILD.gn
-%endif
-
 %if 0%{?fedora} >= 28 || %{with clang_bundle}
 sed -i \
     -e '/"-Wno-ignored-pragma-optimize"/d' build/config/compiler/BUILD.gn
 
 sed -i \
     -e '/"-Wno-defaulted-function-deleted"/d' build/config/compiler/BUILD.gn
+
 %endif
 
 # Force script incompatible with Python 3 to use /usr/bin/python2
@@ -879,16 +846,16 @@ _flags+=(
     'symbol_level=0'
 %if %{with jumbo_unity}
     'use_jumbo_build=true'
-    'jumbo_file_merge_limit=12'
+    'jumbo_file_merge_limit=9'
 %endif
     'concurrent_links=1'
-    'optimize_for_size=true'
     'remove_webcore_debug_symbols=true'
 )
 
 
 # Build files for Ninja #
 gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release 
+
 
 # SUPER POWER!
 jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
@@ -1175,6 +1142,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Mon Mar 04 2019 - David Va <davidva AT tuta DOT io> 72.0.3626.121-7
+- Updated to 72.0.3626.121
 
 * Sat Dec 22 2018 - David Va <davidva AT tuta DOT io> 71.0.3578.98-7
 - Updated to 71.0.3578.98
