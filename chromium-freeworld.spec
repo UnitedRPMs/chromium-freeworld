@@ -26,7 +26,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 
 %global debug_package %{nil}
@@ -34,6 +34,8 @@
 # clang is necessary for a fast build
 %bcond_without clang
 # 
+
+# About clang bundle: Necessary in cases where "clang" in system, fails to build chromium.
 %if 0%{?fedora} <= 28
 %bcond_without clang_bundle
 %else
@@ -109,7 +111,7 @@
 
 Name:       chromium-freeworld
 Version:    72.0.3626.121
-Release:    6%{?dist}
+Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -144,6 +146,11 @@ Source16:	http://download.savannah.nongnu.org/releases/freebangfont/MuktiNarrow-
 Source17:	https://chromium.googlesource.com/chromium/src.git/+archive/refs/heads/master/third_party/test_fonts.tar.gz
 Source18:	https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf
 Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/third_party/gardiner_mod.tar.gz
+Source20:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/arimo.tar.xz
+Source21:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/cousine.tar.xz
+
+# markupsafe
+Source22:	https://github.com/pallets/markupsafe/archive/1.1.1.tar.gz
 
 # Thanks Arch Linux
 Patch1:         chromium-widevine.patch
@@ -175,23 +182,35 @@ BuildRequires:	gcc-c++
 BuildRequires: clang llvm
 %endif
 # Basic tools and libraries
-BuildRequires: ninja-build, bison, gperf, hwdata, gn
-BuildRequires: libgcc(x86-32), glibc(x86-32), libatomic
-BuildRequires: libcap-devel, cups-devel, alsa-lib-devel
+BuildRequires: ninja-build 
+BuildRequires: bison 
+BuildRequires: gperf 
+BuildRequires: hwdata 
+BuildRequires: gn 
+BuildRequires: xz
+BuildRequires: libgcc(x86-32) 
+BuildRequires: glibc(x86-32) 
+BuildRequires: libatomic
+BuildRequires: libcap-devel 
+BuildRequires: cups-devel 
+BuildRequires: alsa-lib-devel
 %if 0%{?fedora} >= 30
 BuildRequires:	minizip-compat-devel
 %else
 BuildRequires:	minizip-devel
 %endif
-BuildRequires: pkgconfig(libexif), pkgconfig(nss), 
+BuildRequires: pkgconfig(libexif) 
+BuildRequires: pkgconfig(nss) 
 %if %{with gtk2}
 BuildRequires: pkgconfig(gtk+-2.0)
 %else
 BuildRequires: pkgconfig(gtk+-3.0)
 %endif
 BuildRequires: python2-devel
-BuildRequires: pkgconfig(xtst), pkgconfig(xscrnsaver)
-BuildRequires: pkgconfig(dbus-1), pkgconfig(libudev)
+BuildRequires: pkgconfig(xtst) 
+BuildRequires: pkgconfig(xscrnsaver)
+BuildRequires: pkgconfig(dbus-1) 
+BuildRequires: pkgconfig(libudev)
 #BuildRequires: pkgconfig(gnome-keyring-1)
 BuildRequires: pkgconfig(libffi)
 # remove_bundled_libraries.py --do-remove
@@ -411,11 +430,12 @@ mkdir -p third_party/test_fonts/test_fonts
 tar xmzvf %{S:17} -C third_party/test_fonts
 tar xmzvf %{S:19} -C third_party/test_fonts/test_fonts
 cp -f third_party/test_fonts/LICENSE third_party/test_fonts/test_fonts/
-git clone --depth 1 https://github.com/google/fonts.git
+# git clone --depth 1 https://github.com/google/fonts.git
 # Arimo
-cp -rf $PWD/fonts/apache/arimo/* third_party/test_fonts/test_fonts
+tar xJf %{S:20} -C third_party/test_fonts/test_fonts
 # cousine
-cp -rf $PWD/fonts/apache/cousine/* third_party/test_fonts/test_fonts
+tar xJf %{S:21} -C third_party/test_fonts/test_fonts
+#
 pushd third_party/test_fonts/test_fonts
 unzip %{S:15}
 tar xf %{S:16}
@@ -444,9 +464,11 @@ popd
 %else
 pushd third_party
 rm -rf markupsafe/
-git clone --depth 1 https://github.com/pallets/markupsafe.git $PWD/markupsafe
-cp -f $PWD/markupsafe/src/markupsafe/*.py $PWD/markupsafe/
-cp -f $PWD/markupsafe/src/markupsafe/*.c $PWD/markupsafe/
+mkdir -p markupsafe
+tar xmzvf %{S:22} -C $PWD/
+# git clone --depth 1 https://github.com/pallets/markupsafe.git $PWD/markupsafe
+cp -f $PWD/markupsafe-1.1.1/src/markupsafe/*.py $PWD/markupsafe/
+cp -f $PWD/markupsafe-1.1.1/src/markupsafe/*.c $PWD/markupsafe/
 popd
 %endif
 
@@ -869,15 +891,15 @@ ninja-build -C out/Release remoting_all -j$jobs
 # HERE the real build
 %if %{with devel_tools}
 %if %{with system_ffmpeg}
-ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver policy_templates -j$jobs 
 %else
-ninja-build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver policy_templates -j$jobs 
 %endif
 %else
 %if %{with system_ffmpeg}
-ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome policy_templates -j$jobs 
 %else
-ninja-build -C out/Release third_party/widevine/cdm chrome -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm chrome policy_templates -j$jobs 
 %endif
 %endif
 
@@ -973,6 +995,13 @@ cp -a out/Release/remoting_start_host %{buildroot}/%{crd_path}/start-host
 cp -a out/Release/remoting_user_session %{buildroot}/%{crd_path}/user-session
 chmod a+s %{buildroot}/%{crd_path}/user-session
 
+# Add directories for policy management
+mkdir -p %{buildroot}%{_sysconfdir}/chromium/policies/managed
+mkdir -p %{buildroot}%{_sysconfdir}/chromium/policies/recommended
+
+cp -a out/Release/gen/chrome/app/policy/common/html/en-US/*.html .
+cp -a out/Release/gen/chrome/app/policy/linux/examples/chrome.json .
+
 # chromium
 mkdir -p %{buildroot}%{_sysconfdir}/chromium/remoting_native_messaging_host
 # google-chrome
@@ -1059,7 +1088,8 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %files
 %license LICENSE
-%doc AUTHORS
+%doc AUTHORS chrome_policy_list.html *.json
+%config %{_sysconfdir}/%{name}/
 %{_bindir}/%{name}
 %{_datadir}/appdata/%{name}.appdata.xml
 %{_datadir}/applications/%{name}.desktop
