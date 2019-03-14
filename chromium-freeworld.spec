@@ -188,8 +188,9 @@ BuildRequires: gperf
 BuildRequires: hwdata 
 BuildRequires: gn 
 BuildRequires: xz
-BuildRequires: libgcc(x86-32) 
-BuildRequires: glibc(x86-32) 
+BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
+#BuildRequires: libgcc(x86-32) 
+#BuildRequires: glibc(x86-32) 
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
 BuildRequires: cups-devel 
@@ -996,11 +997,15 @@ cp -a out/Release/remoting_user_session %{buildroot}/%{crd_path}/user-session
 chmod a+s %{buildroot}/%{crd_path}/user-session
 
 # Add directories for policy management
+# https://www.chromium.org/administrators/policy-templates
+# https://www.chromium.org/administrators/linux-quick-start
 mkdir -p %{buildroot}%{_sysconfdir}/chromium/policies/managed
 mkdir -p %{buildroot}%{_sysconfdir}/chromium/policies/recommended
 
 cp -a out/Release/gen/chrome/app/policy/common/html/en-US/*.html .
 cp -a out/Release/gen/chrome/app/policy/linux/examples/chrome.json .
+
+mkdir -p %{buildroot}/%{_sysconfdir}/%{name}/
 
 # chromium
 mkdir -p %{buildroot}%{_sysconfdir}/chromium/remoting_native_messaging_host
