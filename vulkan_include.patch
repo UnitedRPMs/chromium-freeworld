@@ -1,0 +1,11 @@
+--- a/third_party/skia/include/gpu/vk/GrVkVulkan.h	2019-03-11 16:08:06.000000000 -0600
++++ b/third_party/skia/include/gpu/vk/NEW.h		2019-03-14 20:33:31.321389993 -0600
+@@ -11,7 +11,7 @@
+ #include "SkTypes.h"
+ 
+ #if SKIA_IMPLEMENTATION || !defined(SK_VULKAN)
+-#include "../../include/third_party/vulkan/vulkan/vulkan_core.h"
++#include "../../third_party/vulkan/include/vulkan/vulkan_core.h" 
+ #else
+ // For google3 builds we don't set SKIA_IMPLEMENTATION so we need to make sure that the vulkan
+ // headers stay up to date for our needs

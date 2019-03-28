@@ -1,0 +1,104 @@
+diff --git a/base/test/test_suite.cc b/base/test/test_suite.cc
+index 7b895ff..33bd735 100644
+--- a/base/test/test_suite.cc
++++ b/base/test/test_suite.cc
+@@ -248,6 +248,8 @@
+   // have the locale set. In the absence of such a call the "C" locale is the
+   // default. In the gtk code (below) gtk_init() implicitly sets a locale.
+   setlocale(LC_ALL, "");
++  // We still need number to string conversions to be locale insensitive.
++  setlocale(LC_NUMERIC, "C");
+ #endif  // defined(OS_LINUX) && defined(USE_AURA)
+ 
+   // On Android, AtExitManager is created in
+diff --git a/content/shell/renderer/web_test/blink_test_runner.cc b/content/shell/renderer/web_test/blink_test_runner.cc
+index 2e3a527..536a6be 100644
+--- a/content/shell/renderer/web_test/blink_test_runner.cc
++++ b/content/shell/renderer/web_test/blink_test_runner.cc
+@@ -403,6 +403,9 @@
+ 
+ void BlinkTestRunner::SetLocale(const std::string& locale) {
+   setlocale(LC_ALL, locale.c_str());
++  // Number to string conversions require C locale, regardless of what
++  // all the other subsystems are set to.
++  setlocale(LC_NUMERIC, "C");
+ }
+ 
+ void BlinkTestRunner::OnWebTestRuntimeFlagsChanged(
+diff --git a/services/service_manager/embedder/main.cc b/services/service_manager/embedder/main.cc
+index 46ae054..0fbc214 100644
+--- a/services/service_manager/embedder/main.cc
++++ b/services/service_manager/embedder/main.cc
+@@ -136,17 +136,6 @@
+   MSG msg;
+   PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
+ #endif
+-#if defined(OS_POSIX) && !defined(OS_ANDROID)
+-  // Various things break when you're using a locale where the decimal
+-  // separator isn't a period.  See e.g. bugs 22782 and 39964.  For
+-  // all processes except the browser process (where we call system
+-  // APIs that may rely on the correct locale for formatting numbers
+-  // when presenting them to the user), reset the locale for numeric
+-  // formatting.
+-  // Note that this is not correct for plugin processes -- they can
+-  // surface UI -- but it's likely they get this wrong too so why not.
+-  setlocale(LC_NUMERIC, "C");
+-#endif
+ 
+ #if !defined(OFFICIAL_BUILD) && defined(OS_WIN)
+   base::RouteStdioToConsole(false);
+@@ -319,9 +308,19 @@
+ // On Android setlocale() is not supported, and we don't override the signal
+ // handlers so we can get a stack trace when crashing.
+ #if defined(OS_POSIX) && !defined(OS_ANDROID)
+-    // Set C library locale to make sure CommandLine can parse argument values
+-    // in the correct encoding.
++    // Set C library locale to make sure CommandLine can parse
++    // argument values in the correct encoding and to make sure
++    // generated file names (think downloads) are in the file system's
++    // encoding.
+     setlocale(LC_ALL, "");
++    // For numbers we never want the C library's locale sensitive
++    // conversion from number to string because the only thing it
++    // changes is the decimal separator which is not good enough for
++    // the UI and can be harmful elsewhere. User interface number
++    // conversions need to go through ICU. Other conversions need to
++    // be locale insensitive so we force the number locale back to the
++    // default, "C", locale.
++    setlocale(LC_NUMERIC, "C");
+ 
+     SetupSignalHandlers();
+ #endif
+diff --git a/third_party/blink/renderer/platform/wtf/text/wtf_string.cc b/third_party/blink/renderer/platform/wtf/text/wtf_string.cc
+index 797a38c..a8a7c7c 100644
+--- a/third_party/blink/renderer/platform/wtf/text/wtf_string.cc
++++ b/third_party/blink/renderer/platform/wtf/text/wtf_string.cc
+@@ -22,9 +22,11 @@
+ 
+ #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
+ 
++#include <locale.h>
+ #include <stdarg.h>
+ #include <algorithm>
+ #include "base/strings/string_util.h"
++#include "build/build_config.h"
+ #include "third_party/blink/renderer/platform/wtf/ascii_ctype.h"
+ #include "third_party/blink/renderer/platform/wtf/dtoa.h"
+ #include "third_party/blink/renderer/platform/wtf/math_extras.h"
+@@ -312,6 +314,16 @@
+ }
+ 
+ String String::Format(const char* format, ...) {
++  // vsnprintf is locale sensitive when converting floats to strings
++  // and we need it to always use a decimal point. Double check that
++  // the locale is compatible, and also that it is the default "C"
++  // locale so that we aren't just lucky. Android's locales work
++  // differently so can't check the same way there.
++  DCHECK_EQ(strcmp(localeconv()->decimal_point, "."), 0);
++#if !defined(OS_ANDROID)
++  DCHECK_EQ(strcmp(setlocale(LC_NUMERIC, NULL), "C"), 0);
++#endif  // !OS_ANDROID
++
+   va_list args;
+ 
+   // TODO(esprehn): base uses 1024, maybe we should use a bigger size too.

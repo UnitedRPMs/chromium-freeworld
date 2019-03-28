@@ -1,0 +1,226 @@
+diff --git a/third_party/blink/renderer/core/css/css_selector_list.cc b/third_party/blink/renderer/core/css/css_selector_list.cc
+index 5a4542f..8665232 100644
+--- a/third_party/blink/renderer/core/css/css_selector_list.cc
++++ b/third_party/blink/renderer/core/css/css_selector_list.cc
+@@ -137,14 +137,14 @@
+   std::vector<const CSSSelector*> selector_boundaries =
+       SelectorBoundaries(*this);
+ 
+-  size_t i = 0;
++  size_t begin = 0;
+   CSSSelectorList transformed = this->Copy();
+-  while (!selector_boundaries[i]->HasPseudoIs() &&
+-         !selector_boundaries[i]->HasPseudoWhere())
+-    ++i;
++  while (!selector_boundaries[begin]->HasPseudoIs() &&
++         !selector_boundaries[begin]->HasPseudoWhere())
++    ++begin;
+ 
+-  const CSSSelector* selector_to_expand_begin = selector_boundaries[i];
+-  const CSSSelector* selector_to_expand_end = selector_boundaries[i + 1];
++  const CSSSelector* selector_to_expand_begin = selector_boundaries[begin];
++  const CSSSelector* selector_to_expand_end = selector_boundaries[begin + 1];
+   unsigned selector_to_expand_length =
+       static_cast<unsigned>(selector_to_expand_end - selector_to_expand_begin);
+ 
+diff --git a/third_party/blink/renderer/core/css/properties/css_parsing_utils.cc b/third_party/blink/renderer/core/css/properties/css_parsing_utils.cc
+index 475b3a6..a62ed1c 100644
+--- a/third_party/blink/renderer/core/css/properties/css_parsing_utils.cc
++++ b/third_party/blink/renderer/core/css/properties/css_parsing_utils.cc
+@@ -2291,12 +2291,14 @@
+                   CSSParserTokenRange& range,
+                   CSSParserMode css_parser_mode,
+                   bool use_legacy_parsing) {
+-  unsigned i = 0;
+-  for (; i < 4 && !range.AtEnd() && range.Peek().GetType() != kDelimiterToken;
+-       ++i) {
+-    horizontal_radii[i] = css_property_parser_helpers::ConsumeLengthOrPercent(
+-        range, css_parser_mode, kValueRangeNonNegative);
+-    if (!horizontal_radii[i])
++  unsigned horizontal_value_count = 0;
++  for (; horizontal_value_count < 4 && !range.AtEnd() &&
++         range.Peek().GetType() != kDelimiterToken;
++       ++horizontal_value_count) {
++    horizontal_radii[horizontal_value_count] =
++        css_property_parser_helpers::ConsumeLengthOrPercent(
++            range, css_parser_mode, kValueRangeNonNegative);
++    if (!horizontal_radii[horizontal_value_count])
+       return false;
+   }
+   if (!horizontal_radii[0])
+@@ -2304,7 +2306,7 @@
+   if (range.AtEnd()) {
+     // Legacy syntax: -webkit-border-radius: l1 l2; is equivalent to
+     // border-radius: l1 / l2;
+-    if (use_legacy_parsing && i == 2) {
++    if (use_legacy_parsing && horizontal_value_count == 2) {
+       vertical_radii[0] = horizontal_radii[1];
+       horizontal_radii[1] = nullptr;
+     } else {
+@@ -2316,7 +2318,7 @@
+   } else {
+     if (!css_property_parser_helpers::ConsumeSlashIncludingWhitespace(range))
+       return false;
+-    for (i = 0; i < 4 && !range.AtEnd(); ++i) {
++    for (unsigned i = 0; i < 4 && !range.AtEnd(); ++i) {
+       vertical_radii[i] = css_property_parser_helpers::ConsumeLengthOrPercent(
+           range, css_parser_mode, kValueRangeNonNegative);
+       if (!vertical_radii[i])
+diff --git a/third_party/blink/renderer/core/css/properties/longhands/contain_custom.cc b/third_party/blink/renderer/core/css/properties/longhands/contain_custom.cc
+index b6fab7d..cfcbfe0 100644
+--- a/third_party/blink/renderer/core/css/properties/longhands/contain_custom.cc
++++ b/third_party/blink/renderer/core/css/properties/longhands/contain_custom.cc
+@@ -31,7 +31,7 @@
+   CSSIdentifierValue* style = nullptr;
+   CSSIdentifierValue* paint = nullptr;
+   while (true) {
+-    CSSValueID id = range.Peek().Id();
++    id = range.Peek().Id();
+     if (id == CSSValueSize && !size)
+       size = css_property_parser_helpers::ConsumeIdent(range);
+     else if (id == CSSValueLayout && !layout)
+diff --git a/third_party/blink/renderer/core/css/properties/longhands/content_custom.cc b/third_party/blink/renderer/core/css/properties/longhands/content_custom.cc
+index ee8e477..0eb9878 100644
+--- a/third_party/blink/renderer/core/css/properties/longhands/content_custom.cc
++++ b/third_party/blink/renderer/core/css/properties/longhands/content_custom.cc
+@@ -188,8 +188,8 @@
+         QualifiedName attr(
+             g_null_atom, ToCSSCustomIdentValue(function_value->Item(0)).Value(),
+             g_null_atom);
+-        const AtomicString& value = state.GetElement()->getAttribute(attr);
+-        string = value.IsNull() ? g_empty_string : value.GetString();
++        const AtomicString& attr_value = state.GetElement()->getAttribute(attr);
++        string = attr_value.IsNull() ? g_empty_string : attr_value.GetString();
+       } else {
+         string = ToCSSStringValue(*item).Value();
+       }
+diff --git a/third_party/blink/renderer/core/css/properties/longhands/webkit_text_emphasis_style_custom.cc b/third_party/blink/renderer/core/css/properties/longhands/webkit_text_emphasis_style_custom.cc
+index 6468e77..3ce6efc 100644
+--- a/third_party/blink/renderer/core/css/properties/longhands/webkit_text_emphasis_style_custom.cc
++++ b/third_party/blink/renderer/core/css/properties/longhands/webkit_text_emphasis_style_custom.cc
+@@ -102,12 +102,16 @@
+     const CSSValueList& list = ToCSSValueList(value);
+     DCHECK_EQ(list.length(), 2U);
+     for (unsigned i = 0; i < 2; ++i) {
+-      const CSSIdentifierValue& value = ToCSSIdentifierValue(list.Item(i));
+-      if (value.GetValueID() == CSSValueFilled ||
+-          value.GetValueID() == CSSValueOpen)
+-        state.Style()->SetTextEmphasisFill(value.ConvertTo<TextEmphasisFill>());
+-      else
+-        state.Style()->SetTextEmphasisMark(value.ConvertTo<TextEmphasisMark>());
++      const CSSIdentifierValue& ident_value =
++          ToCSSIdentifierValue(list.Item(i));
++      if (ident_value.GetValueID() == CSSValueFilled ||
++          ident_value.GetValueID() == CSSValueOpen) {
++        state.Style()->SetTextEmphasisFill(
++            ident_value.ConvertTo<TextEmphasisFill>());
++      } else {
++        state.Style()->SetTextEmphasisMark(
++            ident_value.ConvertTo<TextEmphasisMark>());
++      }
+     }
+     state.Style()->SetTextEmphasisCustomMark(g_null_atom);
+     return;
+diff --git a/third_party/blink/renderer/core/css/resolver/css_variable_resolver.cc b/third_party/blink/renderer/core/css/resolver/css_variable_resolver.cc
+index 42139d6..32a0e78 100644
+--- a/third_party/blink/renderer/core/css/resolver/css_variable_resolver.cc
++++ b/third_party/blink/renderer/core/css/resolver/css_variable_resolver.cc
+@@ -120,12 +120,14 @@
+   if (!ResolveTokenRange(range, options, result))
+     return Fallback::kFail;
+   if (registration) {
+-    CSSParserTokenRange range(result.tokens);
+-    range = range.MakeSubRange(&range.Peek(first_fallback_token), range.end());
++    CSSParserTokenRange resolved_range(result.tokens);
++    resolved_range = resolved_range.MakeSubRange(
++        &resolved_range.Peek(first_fallback_token), resolved_range.end());
+     const CSSParserContext* context =
+         StrictCSSParserContext(state_.GetDocument().GetSecureContextMode());
+     const bool is_animation_tainted = false;
+-    if (!registration->Syntax().Parse(range, context, is_animation_tainted))
++    if (!registration->Syntax().Parse(resolved_range, context,
++                                      is_animation_tainted))
+       return Fallback::kFail;
+   }
+   return Fallback::kSuccess;
+diff --git a/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc b/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc
+index dc83c08..8c39148 100644
+--- a/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc
++++ b/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc
+@@ -1309,11 +1309,11 @@
+   CSSBoxType css_box = CSSBoxType::kMissing;
+   const CSSValueList& value_list = ToCSSValueList(value);
+   for (unsigned i = 0; i < value_list.length(); ++i) {
+-    const CSSValue& value = value_list.Item(i);
+-    if (value.IsBasicShapeValue()) {
+-      shape = BasicShapeForValue(state, value);
++    const CSSValue& item_value = value_list.Item(i);
++    if (item_value.IsBasicShapeValue()) {
++      shape = BasicShapeForValue(state, item_value);
+     } else {
+-      css_box = ToCSSIdentifierValue(value).ConvertTo<CSSBoxType>();
++      css_box = ToCSSIdentifierValue(item_value).ConvertTo<CSSBoxType>();
+     }
+   }
+ 
+diff --git a/third_party/blink/renderer/core/css/selector_checker.cc b/third_party/blink/renderer/core/css/selector_checker.cc
+index b4a0943..dd32000 100644
+--- a/third_party/blink/renderer/core/css/selector_checker.cc
++++ b/third_party/blink/renderer/core/css/selector_checker.cc
+@@ -762,11 +762,11 @@
+     case CSSSelector::kPseudoNot:
+       return CheckPseudoNot(context, result);
+     case CSSSelector::kPseudoEmpty: {
+-      bool result = true;
++      bool is_empty = true;
+       bool has_whitespace = false;
+       for (Node* n = element.firstChild(); n; n = n->nextSibling()) {
+         if (n->IsElementNode()) {
+-          result = false;
++          is_empty = false;
+           break;
+         }
+         if (n->IsTextNode()) {
+@@ -775,20 +775,20 @@
+             if (text_node->ContainsOnlyWhitespaceOrEmpty()) {
+               has_whitespace = true;
+             } else {
+-              result = false;
++              is_empty = false;
+               break;
+             }
+           }
+         }
+       }
+-      if (result && has_whitespace) {
++      if (is_empty && has_whitespace) {
+         UseCounter::Count(context.element->GetDocument(),
+                           WebFeature::kCSSSelectorEmptyWhitespaceOnlyFail);
+-        result = false;
++        is_empty = false;
+       }
+       if (mode_ == kResolvingStyle)
+         element.SetStyleAffectedByEmpty();
+-      return result;
++      return is_empty;
+     }
+     case CSSSelector::kPseudoFirstChild:
+       if (mode_ == kResolvingStyle) {
+diff --git a/third_party/blink/renderer/core/css/style_property_serializer.cc b/third_party/blink/renderer/core/css/style_property_serializer.cc
+index ea3d503..7cd987c 100644
+--- a/third_party/blink/renderer/core/css/style_property_serializer.cc
++++ b/third_party/blink/renderer/core/css/style_property_serializer.cc
+@@ -93,10 +93,10 @@
+       static_cast<CSSPropertyID>(index + firstCSSProperty);
+   DCHECK(isCSSPropertyIDWithName(property_id));
+   if (longhand_property_used_.test(index)) {
+-    int index = property_set_->FindPropertyIndex(property_id);
+-    DCHECK_NE(index, -1);
++    int real_index = property_set_->FindPropertyIndex(property_id);
++    DCHECK_NE(real_index, -1);
+     return StylePropertySerializer::PropertyValueForSerializer(
+-        property_set_->PropertyAt(index));
++        property_set_->PropertyAt(real_index));
+   }
+ 
+   CSSPropertyValueSet::PropertyReference property =

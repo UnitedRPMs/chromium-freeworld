@@ -1,0 +1,91 @@
+diff --git a/third_party/blink/renderer/core/animation/css/css_animations.cc b/third_party/blink/renderer/core/animation/css/css_animations.cc
+index bd8fb87..71407ff 100644
+--- a/third_party/blink/renderer/core/animation/css/css_animations.cc
++++ b/third_party/blink/renderer/core/animation/css/css_animations.cc
+@@ -382,14 +382,14 @@
+       wtf_size_t existing_animation_index = 0;
+ 
+       if (css_animations) {
+-        for (wtf_size_t i = 0; i < css_animations->running_animations_.size();
+-             i++) {
++        for (wtf_size_t j = 0; j < css_animations->running_animations_.size();
++             j++) {
+           const RunningAnimation& running_animation =
+-              *css_animations->running_animations_[i];
++              *css_animations->running_animations_[j];
+           if (running_animation.name == name &&
+               running_animation.name_index == name_index) {
+             existing_animation = &running_animation;
+-            existing_animation_index = i;
++            existing_animation_index = j;
+             break;
+           }
+         }
+diff --git a/third_party/blink/renderer/core/animation/effect_input.cc b/third_party/blink/renderer/core/animation/effect_input.cc
+index c2e3d0c..89950ab 100644
+--- a/third_party/blink/renderer/core/animation/effect_input.cc
++++ b/third_party/blink/renderer/core/animation/effect_input.cc
+@@ -426,7 +426,7 @@
+ // See https://drafts.csswg.org/web-animations/#processing-a-keyframes-argument
+ StringKeyframeVector ConvertObjectForm(Element* element,
+                                        Document& document,
+-                                       const v8::Local<v8::Object>& keyframe,
++                                       const v8::Local<v8::Object>& v8_keyframe,
+                                        ScriptState* script_state,
+                                        ExceptionState& exception_state) {
+   // We implement much of this procedure out of order from the way the spec is
+@@ -437,7 +437,7 @@
+   // to process a keyframe-like object'.
+   BasePropertyIndexedKeyframe* property_indexed_keyframe =
+       NativeValueTraits<BasePropertyIndexedKeyframe>::NativeValue(
+-          script_state->GetIsolate(), keyframe, exception_state);
++          script_state->GetIsolate(), v8_keyframe, exception_state);
+   if (exception_state.HadException())
+     return {};
+ 
+@@ -466,7 +466,7 @@
+   // object' and step 5.2 of the 'procedure to process a keyframes argument'.
+ 
+   Vector<String> keyframe_properties = GetOwnPropertyNames(
+-      script_state->GetIsolate(), keyframe, exception_state);
++      script_state->GetIsolate(), v8_keyframe, exception_state);
+   if (exception_state.HadException())
+     return {};
+ 
+@@ -496,7 +496,7 @@
+       continue;
+ 
+     Vector<String> values;
+-    if (!GetPropertyIndexedKeyframeValues(keyframe, property, script_state,
++    if (!GetPropertyIndexedKeyframeValues(v8_keyframe, property, script_state,
+                                           exception_state, values)) {
+       return {};
+     }
+diff --git a/third_party/blink/renderer/core/animation/list_interpolation_functions.cc b/third_party/blink/renderer/core/animation/list_interpolation_functions.cc
+index b1625a5..09bfde3a 100644
+--- a/third_party/blink/renderer/core/animation/list_interpolation_functions.cc
++++ b/third_party/blink/renderer/core/animation/list_interpolation_functions.cc
+@@ -135,17 +135,17 @@
+       ToNonInterpolableList(*end.non_interpolable_value);
+ 
+   for (wtf_size_t i = 0; i < final_length; i++) {
+-    PairwiseInterpolationValue result = nullptr;
+     if (length_matching_strategy ==
+             LengthMatchingStrategy::kLowestCommonMultiple ||
+         (i < start_length && i < end_length)) {
+-      InterpolationValue start(
++      InterpolationValue start_merge(
+           start_interpolable_list.Get(i % start_length)->Clone(),
+           start_non_interpolable_list.Get(i % start_length));
+-      InterpolationValue end(end_interpolable_list.Get(i % end_length)->Clone(),
+-                             end_non_interpolable_list.Get(i % end_length));
+-      PairwiseInterpolationValue result =
+-          merge_single_item_conversions.Run(std::move(start), std::move(end));
++      InterpolationValue end_merge(
++          end_interpolable_list.Get(i % end_length)->Clone(),
++          end_non_interpolable_list.Get(i % end_length));
++      PairwiseInterpolationValue result = merge_single_item_conversions.Run(
++          std::move(start_merge), std::move(end_merge));
+       if (!result)
+         return nullptr;
+       result_start_interpolable_list->Set(

@@ -1,0 +1,60 @@
+diff --git a/third_party/blink/renderer/core/input/event_handler.cc b/third_party/blink/renderer/core/input/event_handler.cc
+index 919bf76..1dc75d8 100644
+--- a/third_party/blink/renderer/core/input/event_handler.cc
++++ b/third_party/blink/renderer/core/input/event_handler.cc
+@@ -752,14 +752,14 @@
+   // refetch the MouseEventWithHitTestResults in case the scrollbar
+   // EmbeddedContentView was destroyed when the mouse event was handled.
+   if (mev.GetScrollbar()) {
+-    const bool was_last_scroll_bar =
+-        mev.GetScrollbar() == last_scrollbar_under_mouse_.Get();
+-    HitTestRequest request(HitTestRequest::kReadOnly | HitTestRequest::kActive);
+-    mev = frame_->GetDocument()->PerformMouseEventHitTest(
+-        request, document_point, mouse_event);
+-    if (was_last_scroll_bar &&
+-        mev.GetScrollbar() != last_scrollbar_under_mouse_.Get())
+-      last_scrollbar_under_mouse_ = nullptr;
++    if (mev.GetScrollbar() == last_scrollbar_under_mouse_.Get()) {
++      HitTestRequest read_only_request(HitTestRequest::kReadOnly |
++                                       HitTestRequest::kActive);
++      mev = frame_->GetDocument()->PerformMouseEventHitTest(
++          read_only_request, document_point, mouse_event);
++      if (mev.GetScrollbar() != last_scrollbar_under_mouse_.Get())
++        last_scrollbar_under_mouse_ = nullptr;
++    }
+   }
+ 
+   // Scrollbars should get events anyway, even disabled controls might be
+@@ -769,10 +769,10 @@
+ 
+   if (event_result == WebInputEventResult::kNotHandled) {
+     if (ShouldRefetchEventTarget(mev)) {
+-      HitTestRequest request(HitTestRequest::kReadOnly |
+-                             HitTestRequest::kActive);
++      HitTestRequest read_only_request(HitTestRequest::kReadOnly |
++                                       HitTestRequest::kActive);
+       mev = frame_->GetDocument()->PerformMouseEventHitTest(
+-          request, document_point, mouse_event);
++          read_only_request, document_point, mouse_event);
+     }
+     event_result = mouse_event_manager_->HandleMousePressEvent(mev);
+   }
+diff --git a/third_party/blink/renderer/core/input/scroll_manager.cc b/third_party/blink/renderer/core/input/scroll_manager.cc
+index d386cff..a87e8ae 100644
+--- a/third_party/blink/renderer/core/input/scroll_manager.cc
++++ b/third_party/blink/renderer/core/input/scroll_manager.cc
+@@ -251,11 +251,11 @@
+   RecomputeScrollChain(*node, *scroll_state, scroll_chain);
+ 
+   while (!scroll_chain.empty()) {
+-    Node* node = DOMNodeIds::NodeForId(scroll_chain.back());
++    Node* scroll_chain_node = DOMNodeIds::NodeForId(scroll_chain.back());
+     scroll_chain.pop_back();
+-    DCHECK(node);
++    DCHECK(scroll_chain_node);
+ 
+-    LayoutBox* box = ToLayoutBox(node->GetLayoutObject());
++    LayoutBox* box = ToLayoutBox(scroll_chain_node->GetLayoutObject());
+     DCHECK(box);
+ 
+     ScrollDirectionPhysical physical_direction =

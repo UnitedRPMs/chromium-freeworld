@@ -10,6 +10,8 @@
 #  [9] https://github.com/RussianFedora/chromium/
 #  [10] http://svnweb.mageia.org/packages/cauldron/chromium-browser-stable/?pathrev=1321923
 #  [11] https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
+#  [12] https://operasoftware.github.io/upstreamtools/
+#  [13] https://build.opensuse.org/package/show/network:chromium/chromium-beta
 
 %global _python_bytecompile_extra 1
 %global chromiumdir %{_libdir}/chromium
@@ -36,7 +38,7 @@
 # 
 
 # About clang bundle: Necessary in cases where "clang" in system, fails to build chromium.
-%if 0%{?fedora} <= 28
+%if 0%{?fedora} >= 30
 %bcond_without clang_bundle
 %else
 %bcond_with clang_bundle
@@ -109,8 +111,11 @@
 # re2 conditional
 %bcond_with re2_external
 
+# swiftshader conditional
+%bcond_with swiftshader
+
 Name:       chromium-freeworld
-Version:    72.0.3626.121
+Version:    73.0.3683.86
 Release:    7%{?dist}
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -148,28 +153,62 @@ Source18:	https://github.com/web-platform-tests/wpt/raw/master/fonts/Ahem.ttf
 Source19:	https://chromium.googlesource.com/chromium/src/+archive/66.0.3359.158/third_party/gardiner_mod.tar.gz
 Source20:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/arimo.tar.xz
 Source21:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/cousine.tar.xz
-
 # markupsafe
 Source22:	https://github.com/pallets/markupsafe/archive/1.1.1.tar.gz
+# Clang bundle
+%if %{with clang_bundle}
+Source23:	http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+%endif
+# V8 missed/test 
+#Source24:	https://github.com/v8/v8/archive/7.5.48.tar.gz
+
+
+#----------------------------------------------------------------------------------------------------------------------------
+# Patches
 
 # Thanks Arch Linux
-Patch1:         chromium-widevine.patch
+Patch1:		chromium-system-icu.patch
+Patch2:		chromium-color_utils-use-std-sqrt.patch
+Patch3:		chromium-media-fix-build-with-libstdc++.patch
+Patch4:		chromium-avoid-log-flooding-in-GLSurfacePresentationHelper.patch
+Patch5:		chromium-widevine.patch
+Patch6:		chromium-skia-harmony.patch
 # Thanks Gentoo
-Patch2:         chromium-compiler-r7.patch
+Patch7:		chromium-fix-char_traits.patch
+Patch8:		chromium-73-gcc-0.patch
+Patch9:		chromium-73-gcc-1.patch
+Patch10:	chromium-73-gcc-3.patch
+Patch11:	chromium-73-gcc-4.patch
+Patch12:	chromium-73-gcc-5.patch
+Patch13:	chromium-73-gcc-6.patch
 # Thanks Debian
-Patch3:	widevine-locations.patch
+Patch14:	widevine-locations.patch
+Patch15:	int-in-bool-context.patch
+Patch16:	bool-compare.patch
+Patch17:	enum-compare.patch
+Patch18:	explicit-constructor.patch
+Patch19:	null-destination.patch
+Patch20:	unused-result.patch
+Patch21:	vpx.patch
+Patch22:	gpu-timeout.patch
+Patch23:	namespace.patch
 # VAAPI
 %if %{with vaapi}
-Patch4:	chromium-vaapi.patch
-Patch5:	chromium-vaapi-relax-the-version-check-for-VA-API.patch
-Patch6:	chromium-enable-mojo-video-decoders-by-default.patch
-Patch7:	chromium-vaapi-fix-the-VA_CHECK_VERSION.patch
+Patch24:	vaapi.patch
 %endif
-Patch8: chromium-skia-harmony.patch
-Patch9: chromium-webrtc-missing-header.patch
-Patch10: chromium-bootstrap-python2.patch
-Patch11: chromium-nacl-llvm-ar.patch
-Patch12: chromium-system-icu.patch
+# Thanks Fedora
+Patch25:	chromium-bootstrap-python2.patch
+Patch26:	chromium-nacl-llvm-ar.patch
+# UnitedRPMs
+Patch27:	vulkan_include.patch
+# Thanks Opera
+Patch28:	blink_paint.patch
+Patch29:	blink_html.patch
+Patch30:	blink_input.patch
+Patch31:	blink_animation.patch
+Patch32:	blink_css.patch
+Patch33:	fixing_blink_tests.patch
+
 
 ExclusiveArch: x86_64 
 
@@ -208,6 +247,9 @@ BuildRequires: pkgconfig(gtk+-2.0)
 BuildRequires: pkgconfig(gtk+-3.0)
 %endif
 BuildRequires: python2-devel
+%if 0%{?fedora} >= 29
+BuildRequires:	python-unversioned-command
+%endif
 BuildRequires: pkgconfig(xtst) 
 BuildRequires: pkgconfig(xscrnsaver)
 BuildRequires: pkgconfig(dbus-1) 
@@ -245,7 +287,7 @@ BuildRequires: harfbuzz-devel
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: libpng-devel
 # Chromium requires libvpx 1.5.0 and some non-default options
-#BuildRequires: libvpx-devel
+BuildRequires: libvpx-devel
 BuildRequires: libwebp-devel
 BuildRequires: pkgconfig(libxslt)
 BuildRequires: opus-devel
@@ -409,21 +451,26 @@ Remote desktop support for google-chrome & chromium.
 
 %prep
 %if %{with normalsource}
-%autosetup -n chromium-%{version} -p1
+%setup -n chromium-%{version} 
 %else
 wget -c https://commondatastorage.googleapis.com/chromium-browser-official/chromium-%{version}.tar.xz
 tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
-%autosetup -T -D -n chromium-%{version} -p1
+%setup -T -D -n chromium-%{version} 
 %endif
 
-
 %if %{with clang_bundle}
-wget -c http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-tar xJf clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz -C %{_builddir} 
+tar xJf %{S:23} -C %{_builddir}
 pushd %{_builddir}
 mv -f clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04 buclang
 popd
 %endif
+
+# V8 fix
+# src/third_party/siphash/halfsiphash.h is missed
+#rm -rf v8/
+#tar xmzvf %{S:24} -C $PWD
+#mv -f v8-7.5.48 v8
+
 
 # Unpack fonts
 # Chromium why does not include it?
@@ -496,16 +543,52 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
   sed -i 's/OFFICIAL_BUILD/GOOGLE_CHROME_BUILD/' \
     tools/generate_shim_headers/generate_shim_headers.py
 
-# Change shebang in all relevant files in this directory and all subdirectories
-# See `man find` for how the `-exec command {} +` syntax works
-# find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
-
 
 # Avoid CFI failures with unbundled libxml
   sed -i -e 's/\<xmlMalloc\>/malloc/' -e 's/\<xmlFree\>/free/' \
     third_party/blink/renderer/core/xml/*.cc \
     third_party/blink/renderer/core/xml/parser/xml_document_parser.cc \
     third_party/libxml/chromium/libxml_utils.cc
+
+# Patches, disabled autosetup
+
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1
+%patch9 -p1
+%patch10 -p1
+%patch11 -p1
+%patch12 -p1
+%patch13 -p1
+%patch14 -p1
+%patch15 -p1
+%patch16 -p1
+%patch17 -p1
+%patch18 -p1
+%patch19 -p1
+%patch20 -p1
+%patch21 -p1
+%patch22 -p1
+%patch23 -p1
+%patch24 -p1
+%patch25 -p1
+%patch26 -p1
+%patch27 -p1
+%patch28 -p1
+%patch29 -p1
+%patch30 -p1
+%patch31 -p1
+%patch32 -p1
+%patch33 -p1
+
+# Change shebang in all relevant files in this directory and all subdirectories
+# See `man find` for how the `-exec command {} +` syntax works
+# find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 
 
 # python2 fix
@@ -526,11 +609,9 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		buildtools/third_party/libc++abi \
 		chrome/third_party/mozilla_security_manager \
 		courgette/third_party \
-		net/third_party/http2 \
 		net/third_party/mozilla_security_manager \
 		net/third_party/nss \
 		net/third_party/quic \
-		net/third_party/spdy \
                 net/third_party/uri_template \
 		third_party/abseil-cpp \
 		third_party/angle \
@@ -645,6 +726,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/SPIRV-Tools \
 		third_party/sqlite \
 		third_party/swiftshader \
+		third_party/swiftshader/third_party/llvm-7.0 \
 		third_party/swiftshader/third_party/llvm-subzero \
 		third_party/swiftshader/third_party/subzero \
 		third_party/unrar \
@@ -664,6 +746,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/woff2 \
 		third_party/zlib/google \
 		url/third_party/mozilla \
+		v8/src/third_party/siphash \
 		v8/src/third_party/valgrind \
 		v8/src/third_party/utf8-decoder \
 		v8/third_party/inspector_protocol \
@@ -742,6 +825,7 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
     yasm \
     fontconfig \
     opus \
+    libvpx \
     zlib
 
 
@@ -762,7 +846,7 @@ ln -s %{python2_sitelib}/ply third_party/ply
 
 %if 0%{?fedora} >= 28 || %{with clang_bundle}
 sed -i \
-    -e '/"-Wno-ignored-pragma-optimize"/d' build/config/compiler/BUILD.gn
+    -e '/"--fsplit-lto-unit"/d' build/config/compiler/BUILD.gn
 
 sed -i \
     -e '/"-Wno-defaulted-function-deleted"/d' build/config/compiler/BUILD.gn
@@ -817,7 +901,6 @@ _flags+=(
     'fatal_linker_warnings=false'
     'treat_warnings_as_errors=false'
     'fieldtrial_testing_like_official_build=true'
-    'remove_webcore_debug_symbols=true'
     'ffmpeg_branding="Chrome"'
     'proprietary_codecs=true'
 %if %{with vaapi}
@@ -846,16 +929,17 @@ _flags+=(
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
     'enable_nacl=false'
+%if %{with swiftshader}
     'enable_swiftshader=true'
+%else
+    'enable_swiftshader=false'
+%endif
     'enable_hevc_demuxing=true'
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
 %if %{with system_ffmpeg}
     'is_component_ffmpeg=true' 
-%endif
-%if %{with component_build}
-    'is_component_build=true'
 %endif
 %if %{with system_harfbuzz}
     'use_system_harfbuzz=true'
@@ -874,7 +958,6 @@ _flags+=(
     'jumbo_file_merge_limit=9'
 %endif
     'concurrent_links=1'
-    'remove_webcore_debug_symbols=true'
 )
 
 
@@ -884,10 +967,6 @@ gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release
 
 # SUPER POWER!
 jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
-
-%if %{with remote_desktop}
-ninja-build -C out/Release remoting_all -j$jobs
-%endif
 
 # HERE the real build
 %if %{with devel_tools}
@@ -902,6 +981,10 @@ ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome policy_t
 %else
 ninja-build -C out/Release third_party/widevine/cdm chrome policy_templates -j$jobs 
 %endif
+%endif
+
+%if %{with remote_desktop}
+ninja-build -C out/Release remoting_all -j$jobs
 %endif
 
 %install
@@ -948,7 +1031,9 @@ install -m 644 out/Release/icudtl.dat %{buildroot}/%{chromiumdir}/
 mv -f out/Release/angledata %{buildroot}/%{chromiumdir}/
 
 # swiftshader
+%if %{with swiftshader}
 mv -f out/Release/swiftshader %{buildroot}/%{chromiumdir}/
+%endif
 
 for size in 22 24 48 64 128 256; do
     install -Dm644 chrome/app/theme/chromium/product_logo_$size.png \
@@ -1036,7 +1121,7 @@ sed -i 's|@@CRD_PATH@@|%{crd_path}|g' %{buildroot}/%{_unitdir}/chrome-remote-des
 %endif
 
 install -Dm644 %{S:3} \
-    %{buildroot}/%{_datadir}/drirc.d/10-chromium.conf
+    %{buildroot}/%{_datadir}/drirc.d/10-%{name}.conf
 
 # Mangling fix
 # bash
@@ -1121,8 +1206,6 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/natives_blob.bin
 %{chromiumdir}/snapshot_blob.bin
 %{chromiumdir}/*.pak
-%dir %{chromiumdir}/locales
-%{chromiumdir}/locales/*.pak
 %dir %{chromiumdir}/PepperFlash/
 
 # new
@@ -1134,12 +1217,15 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/mksnapshot
 %{chromiumdir}/pyproto/
 %{chromiumdir}/resources/inspector/
+%if %{with swiftshader}
 %{chromiumdir}/swiftshader/
+%endif
 %{chromiumdir}/transport_security_state_generator
 %{chromiumdir}/v8_context_snapshot.bin
 %{chromiumdir}/v8_context_snapshot_generator
 %{chromiumdir}/xdg-mime
 %{chromiumdir}/xdg-settings
+%{_datadir}/drirc.d/10-%{name}.conf
 
 %files libs
 %{chromiumdir}/lib*.so*
@@ -1182,6 +1268,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Mar 13 2019 - David Va <davidva AT tuta DOT io> 73.0.3683.86-7
+- Updated to 73.0.3683.86
 
 * Mon Mar 04 2019 - David Va <davidva AT tuta DOT io> 72.0.3626.121-7
 - Updated to 72.0.3626.121

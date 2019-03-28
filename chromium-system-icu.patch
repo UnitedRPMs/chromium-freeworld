@@ -1,6 +1,8 @@
---- a/third_party/blink/renderer/platform/text/character_property_data.h	2019-03-01 22:10:40.000000000 -0600
-+++ b/third_party/blink/renderer/platform/text/new.h				2019-03-06 17:26:02.940671405 -0600
-@@ -244,10 +244,12 @@
+diff --git a/third_party/blink/renderer/platform/text/character_property_data.h b/third_party/blink/renderer/platform/text/character_property_data.h
+index 28fb6a9..bb4dbd7 100644
+--- a/third_party/blink/renderer/platform/text/character_property_data.h
++++ b/third_party/blink/renderer/platform/text/character_property_data.h
+@@ -244,10 +244,12 @@ static const UChar32 kIsHangulRanges[] = {
      0xD7B0, 0xD7FF,
      // Halfwidth Hangul Jamo
      // https://www.unicode.org/charts/nameslist/c_FF00.html
