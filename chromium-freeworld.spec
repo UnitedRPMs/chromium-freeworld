@@ -38,7 +38,7 @@
 # 
 
 # About clang bundle: Necessary in cases where "clang" in system, fails to build chromium.
-%if 0%{?fedora} >= 30
+%if 0%{?fedora} <= 28
 %bcond_without clang_bundle
 %else
 %bcond_with clang_bundle
@@ -80,11 +80,7 @@
 %bcond_without component_build
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
-%if 0%{?fedora} >= 30
-%bcond_without system_harfbuzz
-%else
 %bcond_with system_harfbuzz
-%endif
 
 # Allow testing whether icu can be unbundled
 %bcond_with system_libicu
@@ -199,8 +195,7 @@ Patch24:	vaapi.patch
 # Thanks Fedora
 Patch25:	chromium-bootstrap-python2.patch
 Patch26:	chromium-nacl-llvm-ar.patch
-# UnitedRPMs
-Patch27:	vulkan_include.patch
+Patch27:	libvpx-1.7.0-leave-fortify-source-on.patch
 # Thanks Opera
 Patch28:	blink_paint.patch
 Patch29:	blink_html.patch
@@ -208,6 +203,8 @@ Patch30:	blink_input.patch
 Patch31:	blink_animation.patch
 Patch32:	blink_css.patch
 Patch33:	fixing_blink_tests.patch
+
+Patch34:	gtk2.patch
 
 
 ExclusiveArch: x86_64 
@@ -227,9 +224,11 @@ BuildRequires: gperf
 BuildRequires: hwdata 
 BuildRequires: gn 
 BuildRequires: xz
-BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
+BuildRequires: glibc32
+#BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
 #BuildRequires: libgcc(x86-32) 
 #BuildRequires: glibc(x86-32) 
+BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
 BuildRequires: cups-devel 
@@ -471,7 +470,6 @@ popd
 #tar xmzvf %{S:24} -C $PWD
 #mv -f v8-7.5.48 v8
 
-
 # Unpack fonts
 # Chromium why does not include it?
 mkdir -p third_party/test_fonts/test_fonts
@@ -585,6 +583,11 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch31 -p1
 %patch32 -p1
 %patch33 -p1
+%if %{with gtk2}
+%patch34 -p1
+%endif
+
+
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
@@ -721,6 +724,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/skia/third_party/gif \
 		third_party/skia/third_party/skcms \
 		third_party/skia/third_party/vulkan \
+		third_party/skia/include/third_party/vulkan \
 		third_party/smhasher \
 		third_party/spirv-headers \
 		third_party/SPIRV-Tools \
@@ -825,7 +829,9 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
     yasm \
     fontconfig \
     opus \
+%if 0%{?fedora} < 30
     libvpx \
+%endif
     zlib
 
 
