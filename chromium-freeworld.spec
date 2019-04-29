@@ -70,15 +70,6 @@
 %bcond_with system_libxml2
 %endif
 
-# Component build
-# Component build. Setting to true compiles targets declared as "components"
-# as shared libraries loaded dynamically. This speeds up development time.
-# When false, components will be linked statically.
-# For more information see
-# https://chromium.googlesource.com/chromium/src/+/master/docs/component_build.md
-
-%bcond_without component_build
-
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
 %bcond_with system_harfbuzz
 
@@ -111,8 +102,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    73.0.3683.86
-Release:    7%{?dist}
+Version:    74.0.3729.108
+Release:    200.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -162,49 +153,41 @@ Source23:	http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubunt
 #----------------------------------------------------------------------------------------------------------------------------
 # Patches
 
+# Gcc fixes
+Patch1: chromium-gcc8-cl1503254.patch
+Patch2: chromium-gcc8-r641329.patch
+Patch3: chromium-gcc8-r641404.patch
+Patch4: chromium-gcc8-r642680.patch
+Patch5: chromium-gcc8-r647271.patch
+Patch6: chromium-gcc8-r647382.patch
 # Thanks Arch Linux
-Patch1:		chromium-system-icu.patch
-Patch2:		chromium-color_utils-use-std-sqrt.patch
-Patch3:		chromium-media-fix-build-with-libstdc++.patch
-Patch4:		chromium-avoid-log-flooding-in-GLSurfacePresentationHelper.patch
-Patch5:		chromium-widevine.patch
-Patch6:		chromium-skia-harmony.patch
+Patch7:	chromium-system-icu.patch
+#fedora 31/30
+Patch8:	chromium-glibc-2.29.patch
+Patch9:	chromium-widevine.patch
+Patch10: chromium-skia-harmony.patch
 # Thanks Gentoo
-Patch7:		chromium-fix-char_traits.patch
-Patch8:		chromium-73-gcc-0.patch
-Patch9:		chromium-73-gcc-1.patch
-Patch10:	chromium-73-gcc-3.patch
-Patch11:	chromium-73-gcc-4.patch
-Patch12:	chromium-73-gcc-5.patch
-Patch13:	chromium-73-gcc-6.patch
+Patch11: chromium-fix-char_traits.patch
 # Thanks Debian
-Patch14:	widevine-locations.patch
-Patch15:	int-in-bool-context.patch
-Patch16:	bool-compare.patch
-Patch17:	enum-compare.patch
-Patch18:	explicit-constructor.patch
-Patch19:	null-destination.patch
-Patch20:	unused-result.patch
-Patch21:	vpx.patch
-Patch22:	gpu-timeout.patch
-Patch23:	namespace.patch
+Patch12: widevine-locations.patch
+Patch13: int-in-bool-context.patch
+Patch14: bool-compare.patch
+Patch15: enum-compare.patch
+Patch16: null-destination.patch
+Patch17: unused-result.patch
+Patch18: vpx.patch
+Patch19: gpu-timeout.patch
+Patch20: namespace.patch
+Patch21: gtk2.patch
 # VAAPI
-%if %{with vaapi}
-Patch24:	vaapi.patch
-%endif
+Patch22: vaapi.patch
 # Thanks Fedora
-Patch25:	chromium-bootstrap-python2.patch
-Patch26:	chromium-nacl-llvm-ar.patch
-Patch27:	libvpx-1.7.0-leave-fortify-source-on.patch
+Patch23: chromium-bootstrap-python2.patch
+Patch24: chromium-nacl-llvm-ar.patch
+Patch25: libvpx-1.7.0-leave-fortify-source-on.patch
 # Thanks Opera
-Patch28:	blink_paint.patch
-Patch29:	blink_html.patch
-Patch30:	blink_input.patch
-Patch31:	blink_animation.patch
-Patch32:	blink_css.patch
-Patch33:	fixing_blink_tests.patch
+Patch26: fixing_blink_tests.patch
 
-Patch34:	gtk2.patch
 
 
 ExclusiveArch: x86_64 
@@ -223,11 +206,12 @@ BuildRequires: bison
 BuildRequires: gperf 
 BuildRequires: hwdata 
 BuildRequires: gn 
+BuildRequires: java-openjdk-headless
 BuildRequires: xz
-BuildRequires: glibc32
+#BuildRequires: glibc32
 #BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
-#BuildRequires: libgcc(x86-32) 
-#BuildRequires: glibc(x86-32) 
+BuildRequires: libgcc(x86-32) 
+BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -557,12 +541,14 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch5 -p1
 %patch6 -p1
 %patch7 -p1
+%if 0%{?fedora} >= 30
 %patch8 -p1
+%endif
 %patch9 -p1
 %patch10 -p1
 %patch11 -p1
 %patch12 -p1
-%patch13 -p1
+%patch13 -p1 
 %patch14 -p1
 %patch15 -p1
 %patch16 -p1
@@ -570,22 +556,16 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch18 -p1
 %patch19 -p1
 %patch20 -p1
+%if %{with gtk2}
 %patch21 -p1
+%endif
+%if %{with vaapi}
 %patch22 -p1
+%endif
 %patch23 -p1
 %patch24 -p1
 %patch25 -p1
 %patch26 -p1
-%patch27 -p1
-%patch28 -p1
-%patch29 -p1
-%patch30 -p1
-%patch31 -p1
-%patch32 -p1
-%patch33 -p1
-%if %{with gtk2}
-%patch34 -p1
-%endif
 
 
 
@@ -766,6 +746,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/angle/src/common/third_party/xxhash \
 		third_party/libvpx \
 		third_party/libvpx/source/libvpx/third_party/x86inc \
+		third_party/glslang \
+		third_party/dav1d \
 %if !%{with re2_external}
 		third_party/re2 \
 %endif
@@ -1275,7 +1257,10 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %changelog
 
-* Wed Mar 13 2019 - David Va <davidva AT tuta DOT io> 73.0.3683.86-7
+* Fri Apr 26 2019 - David Va <davidva AT tuta DOT io> 74.0.3729.108.1
+- Updated to 74.0.3729.108
+
+* Wed Mar 13 2019 - David Va <davidva AT tuta DOT io> 73.0.3683.86-123.1
 - Updated to 73.0.3683.86
 
 * Mon Mar 04 2019 - David Va <davidva AT tuta DOT io> 72.0.3626.121-7
