@@ -1,0 +1,23 @@
+Source: Tom Briden <tom@decompile.me.uk>
+Upstream: No
+Reason: Having no-canonical-prefixes results in the resource-dir being relative
+to /usr/host/bin, which makes a path that doesn't exist. Removing this uses the
+realpath so the relative resource-dir does exist
+
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index ca6ff2b..1ca024d 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1136,12 +1136,6 @@ config("compiler_deterministic") {
+     }
+   }
+ 
+-  # Tells the compiler not to use absolute paths when passing the default
+-  # paths to the tools it invokes. We don't want this because we don't
+-  # really need it and it can mess up the goma cache entries.
+-  if (is_clang && !is_nacl) {
+-    cflags += [ "-no-canonical-prefixes" ]
+-  }
+ }
+ 
+ config("clang_revision") {

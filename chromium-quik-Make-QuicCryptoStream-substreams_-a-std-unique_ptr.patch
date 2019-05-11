@@ -1,3 +1,6 @@
+Upstream: Yes
+Source: https://chromium-review.googlesource.com/c/chromium/src/+/1503254
+
 From 22cd5f5f9f8af1f343e9fa747c03fc79667a60ea Mon Sep 17 00:00:00 2001
 From: Raphael Kubo da Costa <raphael.kubo.da.costa@intel.com>
 Date: Tue, 05 Mar 2019 11:11:51 +0100
@@ -29,7 +32,6 @@ initialize it via operator new[] instead.
 
 Bug: 819294, 937886
 Change-Id: If56f2a12a733e6f6680ed9c9e6f7688439e9d216
-Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/1503254
 ---
 
 diff --git a/net/third_party/quic/core/quic_crypto_stream.cc b/net/third_party/quic/core/quic_crypto_stream.cc

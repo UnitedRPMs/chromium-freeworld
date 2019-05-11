@@ -22,9 +22,9 @@
 
 
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
-%bcond_without devel_tools
+%bcond_with devel_tools
 # Chromium users doesn't need chrome-remote-desktop
-%bcond_without remote_desktop
+%bcond_with remote_desktop
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
@@ -71,6 +71,7 @@
 %endif
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
+# hb-aat.h isn't in system anymore...
 %bcond_with system_harfbuzz
 
 # Allow testing whether icu can be unbundled
@@ -102,8 +103,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    74.0.3729.108
-Release:    200.1
+Version:    74.0.3729.131
+Release:    265.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -144,7 +145,7 @@ Source21:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fon
 Source22:	https://github.com/pallets/markupsafe/archive/1.1.1.tar.gz
 # Clang bundle
 %if %{with clang_bundle}
-Source23:	http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
 %endif
 # V8 missed/test 
 #Source24:	https://github.com/v8/v8/archive/7.5.48.tar.gz
@@ -152,50 +153,25 @@ Source23:	http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubunt
 
 #----------------------------------------------------------------------------------------------------------------------------
 # Patches
-
-# Gcc fixes
-Patch1: chromium-gcc8-cl1503254.patch
-Patch2: chromium-gcc8-r641329.patch
-Patch3: chromium-gcc8-r641404.patch
-Patch4: chromium-gcc8-r642680.patch
-Patch5: chromium-gcc8-r647271.patch
-Patch6: chromium-gcc8-r647382.patch
-# Thanks Arch Linux
-Patch7:	chromium-system-icu.patch
-#fedora 31/30
-Patch8:	chromium-glibc-2.29.patch
-Patch9:	chromium-widevine.patch
-Patch10: chromium-skia-harmony.patch
-# Thanks Gentoo
-Patch11: chromium-fix-char_traits.patch
-# Thanks Debian
-Patch12: widevine-locations.patch
-Patch13: int-in-bool-context.patch
-Patch14: bool-compare.patch
-Patch15: enum-compare.patch
-Patch16: null-destination.patch
-Patch17: unused-result.patch
-Patch18: vpx.patch
-Patch19: gpu-timeout.patch
-Patch20: namespace.patch
-Patch21: gtk2.patch
+Patch1: chromium-swiftshader-default-visibility.patch
+Patch2: chromium-widevine.patch
+Patch3: chromium-remove-no-canonical-prefixes.patch
+# gcc-patches
+Patch4: chromium-Revert-base-Reduce-base-Value-size.patch
+Patch5: chromium-quik-Make-QuicCryptoStream-substreams_-a-std-unique_ptr.patch
+Patch6: widevine-locations.patch
+Patch7: chromium-glibc-2.29.patch
+Patch22: gtk2.patch
 # VAAPI
-Patch22: vaapi.patch
-# Thanks Fedora
-Patch23: chromium-bootstrap-python2.patch
-Patch24: chromium-nacl-llvm-ar.patch
-Patch25: libvpx-1.7.0-leave-fortify-source-on.patch
-# Thanks Opera
-Patch26: fixing_blink_tests.patch
-
+Patch23: vaapi.patch
 
 
 ExclusiveArch: x86_64 
 
 # Make sure we don't encounter GCC 5.1 bug
-%if 0%{?fedora} >= 22
-BuildRequires:	gcc-c++
-%endif
+#if 0%{?fedora} >= 22
+#BuildRequires:	gcc-c++
+#endif
 
 %if %{with clang} || %{with require_clang} 
 BuildRequires: clang llvm
@@ -206,7 +182,11 @@ BuildRequires: bison
 BuildRequires: gperf 
 BuildRequires: hwdata 
 BuildRequires: gn 
+%if 0%{?fedora} >= 29
 BuildRequires: java-openjdk-headless
+%else
+BuildRequires: javapackages-tools
+%endif
 BuildRequires: xz
 #BuildRequires: glibc32
 #BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
@@ -337,6 +317,10 @@ BuildRequires:	google-noto-sans-khmer-fonts
 BuildRequires:	google-croscore-tinos-fonts
 BuildRequires:	subversion
 BuildRequires:	at-spi2-core-devel
+%if %{with clang_bundle}
+BuildRequires:	ncurses-compat-libs
+%endif
+BuildRequires:	libevent-devel
 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
@@ -444,7 +428,7 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %if %{with clang_bundle}
 tar xJf %{S:23} -C %{_builddir}
 pushd %{_builddir}
-mv -f clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04 buclang
+mv -f clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04 buclang 
 popd
 %endif
 
@@ -540,34 +524,15 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch4 -p1
 %patch5 -p1
 %patch6 -p1
-%patch7 -p1
 %if 0%{?fedora} >= 30
-%patch8 -p1
+%patch7 -p1
 %endif
-%patch9 -p1
-%patch10 -p1
-%patch11 -p1
-%patch12 -p1
-%patch13 -p1 
-%patch14 -p1
-%patch15 -p1
-%patch16 -p1
-%patch17 -p1
-%patch18 -p1
-%patch19 -p1
-%patch20 -p1
 %if %{with gtk2}
-%patch21 -p1
-%endif
-%if %{with vaapi}
 %patch22 -p1
 %endif
+%if %{with vaapi}
 %patch23 -p1
-%patch24 -p1
-%patch25 -p1
-%patch26 -p1
-
-
+%endif
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
@@ -580,174 +545,171 @@ ln -sfn /usr/bin/python2.7 $HOME/bin/python
 export PATH="$HOME/bin/:$PATH"
 
 python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
-		base/third_party/dmg_fp \
-		base/third_party/dynamic_annotations \
-		base/third_party/nspr \
-		base/third_party/superfasthash \
-		base/third_party/symbolize \
-		base/third_party/valgrind \
-		base/third_party/xdg_mime \
-		base/third_party/xdg_user_dirs \
-		buildtools/third_party/libc++ \
-		buildtools/third_party/libc++abi \
-		chrome/third_party/mozilla_security_manager \
-		courgette/third_party \
-		net/third_party/mozilla_security_manager \
-		net/third_party/nss \
-		net/third_party/quic \
-                net/third_party/uri_template \
-		third_party/abseil-cpp \
-		third_party/angle \
-		third_party/angle/src/common/third_party/base \
-		third_party/angle/src/common/third_party/smhasher \
-		third_party/angle/src/third_party/compiler \
-		third_party/angle/src/third_party/libXNVCtrl \
-		third_party/angle/src/third_party/trace_event \
-		third_party/angle/third_party/glslang \
-		third_party/angle/third_party/spirv-headers \
-		third_party/angle/third_party/spirv-tools \
-		third_party/angle/third_party/vulkan-headers \
-		third_party/angle/third_party/vulkan-loader \
-		third_party/angle/third_party/vulkan-tools \
-		third_party/angle/third_party/vulkan-validation-layers \
-		third_party/apple_apsl \
-		third_party/blink \
-		third_party/boringssl \
-		third_party/boringssl/src/third_party/fiat \
-		third_party/breakpad \
-		third_party/breakpad/breakpad/src/third_party/curl \
-		third_party/brotli \
-		third_party/cacheinvalidation \
-		third_party/catapult \
-		third_party/catapult/common/py_vulcanize/third_party/rcssmin \
-		third_party/catapult/common/py_vulcanize/third_party/rjsmin \
-		third_party/catapult/third_party/beautifulsoup4 \
-		third_party/catapult/third_party/html5lib-python \
-		third_party/catapult/third_party/polymer \
-		third_party/catapult/third_party/six \
-		third_party/catapult/tracing/third_party/d3 \
-		third_party/catapult/tracing/third_party/gl-matrix \
-		third_party/catapult/tracing/third_party/jszip \
-		third_party/catapult/tracing/third_party/mannwhitneyu \
-		third_party/catapult/tracing/third_party/oboe \
-		third_party/catapult/tracing/third_party/pako \
-		third_party/ced \
-		third_party/cld_3 \
-		third_party/closure_compiler \
-		third_party/crashpad \
-		third_party/crashpad/crashpad/third_party/zlib \
-		third_party/crc32c \
-		third_party/cros_system_api \
-		third_party/devscripts \
-		third_party/dom_distiller_js \
-		third_party/fips181 \
-		third_party/flatbuffers \
-		third_party/flot \
-		third_party/freetype \
-		third_party/google_input_tools \
-		third_party/google_input_tools/third_party/closure_library \
-		third_party/google_input_tools/third_party/closure_library/third_party/closure \
-		third_party/googletest \
-		third_party/hunspell \
-		third_party/iccjpeg \
-		third_party/inspector_protocol \
-		third_party/jsoncpp \
-		third_party/jstemplate \
-		third_party/khronos \
-		third_party/leveldatabase \
-		third_party/libXNVCtrl \
-		third_party/libaddressinput \
-		third_party/libaom \
-		third_party/libaom/source/libaom/third_party/vector \
-		third_party/libaom/source/libaom/third_party/x86inc \
-		third_party/libjingle \
-		third_party/libphonenumber \
-		third_party/libsecret \
-		third_party/libsrtp \
-		third_party/libsync \
-		third_party/libudev \
-		third_party/libwebm \
-		third_party/libxml/chromium \
-		third_party/libyuv \
-		third_party/llvm \
-		third_party/lss \
-		third_party/lzma_sdk \
-		third_party/mesa \
-		third_party/metrics_proto \
-		third_party/modp_b64 \
-		third_party/nasm \
-		third_party/node \
-		third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
-		third_party/openmax_dl \
-		third_party/ots \
-		third_party/pdfium \
-		third_party/pdfium/third_party/agg23 \
-		third_party/pdfium/third_party/base \
-		third_party/pdfium/third_party/bigint \
-		third_party/pdfium/third_party/freetype \
-		third_party/pdfium/third_party/lcms \
-		third_party/pdfium/third_party/libopenjpeg20 \
-		third_party/pdfium/third_party/libpng16 \
-		third_party/pdfium/third_party/libtiff \
-		third_party/pdfium/third_party/skia_shared \
-		third_party/perfetto \
-		third_party/polymer \
-		third_party/protobuf \
-		third_party/protobuf/third_party/six \
-		third_party/pyjson5 \
-		third_party/qcms \
-		third_party/rnnoise \
-		third_party/s2cellid \
-		third_party/sfntly \
-		third_party/simplejson \
-		third_party/skia \
-		third_party/skia/third_party/gif \
-		third_party/skia/third_party/skcms \
-		third_party/skia/third_party/vulkan \
-		third_party/skia/include/third_party/vulkan \
-		third_party/smhasher \
-		third_party/spirv-headers \
-		third_party/SPIRV-Tools \
-		third_party/sqlite \
-		third_party/swiftshader \
-		third_party/swiftshader/third_party/llvm-7.0 \
-		third_party/swiftshader/third_party/llvm-subzero \
-		third_party/swiftshader/third_party/subzero \
-		third_party/unrar \
-		third_party/usrsctp \
-		third_party/vulkan \
-		third_party/web-animations-js \
-		third_party/webdriver \
-		third_party/webrtc \
-                third_party/webrtc/common_audio/third_party/fft4g \
-		third_party/webrtc/common_audio/third_party/spl_sqrt_floor \
-		third_party/webrtc/modules/third_party/fft \
-		third_party/webrtc/modules/third_party/g711 \
-		third_party/webrtc/modules/third_party/g722 \
-		third_party/webrtc/rtc_base/third_party/base64 \
-		third_party/webrtc/rtc_base/third_party/sigslot \
-		third_party/widevine \
-		third_party/woff2 \
-		third_party/zlib/google \
-		url/third_party/mozilla \
-		v8/src/third_party/siphash \
-		v8/src/third_party/valgrind \
-		v8/src/third_party/utf8-decoder \
-		v8/third_party/inspector_protocol \
-		v8/third_party/v8 \
-                third_party/yasm \
-		base/third_party/libevent \
-		third_party/xdg-utils \
-		third_party/yasm/run_yasm.py \
-                third_party/adobe \
-		third_party/speech-dispatcher \
-		third_party/usb_ids \
-		third_party/test_fonts \
-		third_party/angle/src/common/third_party/xxhash \
-		third_party/libvpx \
-		third_party/libvpx/source/libvpx/third_party/x86inc \
-		third_party/glslang \
-		third_party/dav1d \
+    base/third_party/dmg_fp \
+    base/third_party/dynamic_annotations \
+    base/third_party/icu \
+    base/third_party/nspr \
+    base/third_party/superfasthash \
+    base/third_party/symbolize \
+    base/third_party/valgrind \
+    base/third_party/xdg_mime \
+    base/third_party/xdg_user_dirs \
+    buildtools/third_party/libc++ \
+    buildtools/third_party/libc++abi \
+    chrome/third_party/mozilla_security_manager \
+    courgette/third_party \
+    net/third_party/mozilla_security_manager \
+    net/third_party/nss \
+    net/third_party/quic \
+    net/third_party/uri_template \
+    third_party/abseil-cpp \
+    third_party/angle \
+    third_party/angle/src/common/third_party/base \
+    third_party/angle/src/common/third_party/smhasher \
+    third_party/angle/src/common/third_party/xxhash \
+    third_party/angle/src/third_party/compiler \
+    third_party/angle/src/third_party/libXNVCtrl \
+    third_party/angle/src/third_party/trace_event \
+    third_party/angle/third_party/glslang \
+    third_party/angle/third_party/spirv-headers \
+    third_party/angle/third_party/spirv-tools \
+    third_party/angle/third_party/vulkan-headers \
+    third_party/angle/third_party/vulkan-loader \
+    third_party/angle/third_party/vulkan-tools \
+    third_party/angle/third_party/vulkan-validation-layers \
+    third_party/apple_apsl \
+    third_party/blink \
+    third_party/boringssl \
+    third_party/boringssl/src/third_party/fiat \
+    third_party/breakpad \
+    third_party/breakpad/breakpad/src/third_party/curl \
+    third_party/brotli \
+    third_party/cacheinvalidation \
+    third_party/catapult \
+    third_party/catapult/common/py_vulcanize/third_party/rcssmin \
+    third_party/catapult/common/py_vulcanize/third_party/rjsmin \
+    third_party/catapult/third_party/polymer \
+    third_party/catapult/tracing/third_party/d3 \
+    third_party/catapult/tracing/third_party/gl-matrix \
+    third_party/catapult/tracing/third_party/jszip \
+    third_party/catapult/tracing/third_party/mannwhitneyu \
+    third_party/catapult/tracing/third_party/oboe \
+    third_party/catapult/tracing/third_party/pako \
+    third_party/ced \
+    third_party/cld_3 \
+    third_party/closure_compiler \
+    third_party/crashpad \
+    third_party/crashpad/crashpad/third_party/zlib \
+    third_party/crc32c \
+    third_party/cros_system_api \
+    third_party/dav1d \
+    third_party/devscripts \
+    third_party/dom_distiller_js \
+    third_party/emoji-segmenter \
+    third_party/fips181 \
+    third_party/flatbuffers \
+    third_party/flot \
+    third_party/freetype \
+    third_party/google_input_tools \
+    third_party/google_input_tools/third_party/closure_library \
+    third_party/google_input_tools/third_party/closure_library/third_party/closure \
+    third_party/googletest \
+    third_party/glslang \
+    third_party/hunspell \
+    third_party/iccjpeg \
+    third_party/icu \
+    third_party/inspector_protocol \
+    third_party/jsoncpp \
+    third_party/jsoncpp/overrides \
+    third_party/jstemplate \
+    third_party/khronos \
+    third_party/leveldatabase \
+    third_party/libXNVCtrl \
+    third_party/libaddressinput \
+    third_party/libaom \
+    third_party/libaom/source/libaom/third_party/vector \
+    third_party/libaom/source/libaom/third_party/x86inc \
+    third_party/libjingle \
+    third_party/libphonenumber \
+    third_party/libsecret \
+    third_party/libsrtp \
+    third_party/libsync \
+    third_party/libudev \
+    third_party/libwebm \
+    third_party/libyuv \
+    third_party/llvm \
+    third_party/lss \
+    third_party/lzma_sdk \
+    third_party/mesa \
+    third_party/metrics_proto \
+    third_party/modp_b64 \
+    third_party/nasm \
+    third_party/node \
+    third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
+    third_party/openmax_dl \
+    third_party/ots \
+    third_party/perfetto \
+    third_party/pdfium \
+    third_party/pdfium/third_party/agg23 \
+    third_party/pdfium/third_party/base \
+    third_party/pdfium/third_party/bigint \
+    third_party/pdfium/third_party/freetype \
+    third_party/pdfium/third_party/lcms \
+    third_party/pdfium/third_party/libopenjpeg20 \
+    third_party/pdfium/third_party/libpng16 \
+    third_party/pdfium/third_party/libtiff \
+    third_party/pdfium/third_party/skia_shared \
+    third_party/polymer \
+    third_party/protobuf \
+    third_party/protobuf/third_party/six \
+    third_party/pyjson5/src/json5 \
+    third_party/qcms \
+    third_party/rnnoise \
+    third_party/s2cellid \
+    third_party/sfntly \
+    third_party/skia \
+    third_party/skia/include/third_party/vulkan/vulkan \
+    third_party/skia/third_party/gif \
+    third_party/skia/third_party/skcms \
+    third_party/skia/third_party/vulkan \
+    third_party/smhasher \
+    third_party/spirv-headers \
+    third_party/SPIRV-Tools \
+    third_party/sqlite \
+    third_party/swiftshader \
+    third_party/swiftshader/third_party/llvm-subzero \
+    third_party/swiftshader/third_party/subzero \
+    third_party/tcmalloc \
+    third_party/unrar \
+    third_party/usrsctp \
+    third_party/vulkan \
+    third_party/web-animations-js \
+    third_party/webdriver \
+    third_party/webrtc \
+    third_party/webrtc/common_audio/third_party/fft4g \
+    third_party/webrtc/common_audio/third_party/spl_sqrt_floor \
+    third_party/webrtc/modules/third_party/fft \
+    third_party/webrtc/modules/third_party/g711 \
+    third_party/webrtc/modules/third_party/g722 \
+    third_party/webrtc/rtc_base/third_party/base64 \
+    third_party/webrtc/rtc_base/third_party/sigslot \
+    third_party/widevine \
+    third_party/woff2 \
+    third_party/zlib/google \
+    url/third_party/mozilla \
+    v8/src/third_party/siphash \
+    v8/src/third_party/utf8-decoder \
+    v8/src/third_party/valgrind \
+    v8/third_party/inspector_protocol \
+    v8/third_party/v8 \
+    third_party/adobe \
+    third_party/speech-dispatcher \
+    third_party/usb_ids \
+    third_party/xdg-utils \
+    third_party/yasm/run_yasm.py \
+    tools/gn/base/third_party/icu \
+   third_party/libvpx \
+    third_party/libvpx/source/libvpx/third_party/x86inc \
 %if !%{with re2_external}
 		third_party/re2 \
 %endif
@@ -756,8 +718,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
 		third_party/blanketjs \
 		third_party/qunit \
 %endif
-    		third_party/icu \
-   		base/third_party/icu/ \
 %if !%{with system_jinja2}
     		third_party/jinja2 \
 %endif
@@ -788,6 +748,7 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %endif
     flac \
     libdrm \
+    libevent \
 %if %{with system_harfbuzz}
     harfbuzz-ng \
 %endif
@@ -809,11 +770,8 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
     icu \
 %endif
     yasm \
-    fontconfig \
     opus \
-%if 0%{?fedora} < 30
-    libvpx \
-%endif
+    fontconfig \
     zlib
 
 
@@ -839,11 +797,14 @@ sed -i \
 sed -i \
     -e '/"-Wno-defaulted-function-deleted"/d' build/config/compiler/BUILD.gn
 
+sed -i \
+    -e '/"-Qunused-arguments"/d' \
+    build/config/compiler/BUILD.gn
+
 %endif
 
 # Force script incompatible with Python 3 to use /usr/bin/python2
   sed -i '1s|python$|&2|' third_party/dom_distiller_js/protoc_plugins/*.py
-
 
 %build
 
@@ -855,6 +816,10 @@ export PATH="$HOME/bin/:$PATH"
 %if %{with clang_bundle}
 export CC=%{_builddir}/buclang/bin/clang
 export CXX=%{_builddir}/buclang/bin/clang++
+export LD_LIBRARY_PATH=%{_builddir}/buclang/lib:%{_libdir}:$LD_LIBRARY_PATH
+export CFLAGS="-O4 -I%{_builddir}/buclang/include -fPIC"
+export CXXFLAGS="-O4 -I%{_builddir}/buclang/include -fPIC"
+export LDFLAGS="-O4 -L%{_builddir}/buclang/lib"
 %else
 export CC=clang
 export CXX=clang++
@@ -917,6 +882,7 @@ _flags+=(
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
     'enable_nacl=false'
+    'remove_webcore_debug_symbols=true'
 %if %{with swiftshader}
     'enable_swiftshader=true'
 %else
@@ -943,36 +909,36 @@ _flags+=(
     'symbol_level=0'
 %if %{with jumbo_unity}
     'use_jumbo_build=true'
-    'jumbo_file_merge_limit=9'
+    'jumbo_file_merge_limit=8'
 %endif
     'concurrent_links=1'
 )
 
 
 # Build files for Ninja #
-gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release 
+gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release --fail-on-unused-args
 
 
 # SUPER POWER!
 jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 
+%if %{with remote_desktop}
+ninja-build -C out/Release remoting_all -j$jobs
+%endif
+
 # HERE the real build
 %if %{with devel_tools}
 %if %{with system_ffmpeg}
-ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver policy_templates -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver -j$jobs 
 %else
-ninja-build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver policy_templates -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver -j$jobs 
 %endif
 %else
 %if %{with system_ffmpeg}
-ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome policy_templates -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
 %else
-ninja-build -C out/Release third_party/widevine/cdm chrome policy_templates -j$jobs 
+ninja-build -C out/Release third_party/widevine/cdm chrome -j$jobs 
 %endif
-%endif
-
-%if %{with remote_desktop}
-ninja-build -C out/Release remoting_all -j$jobs
 %endif
 
 %install
@@ -989,13 +955,14 @@ install -m 755 chromium-wrapper %{buildroot}%{_bindir}/%{name}
 desktop-file-install --dir=%{buildroot}%{_datadir}/applications %{SOURCE11}
 install -m 644 %{SOURCE12} %{buildroot}%{_datadir}/gnome-control-center/default-apps/
 appstream-util validate-relax --nonet %{SOURCE13}
+mkdir -p %{buildroot}%{_datadir}/appdata/
 install -m 644 %{SOURCE13} %{buildroot}%{_datadir}/appdata/
 
 
 # Brute Copy
 cp \
     out/Release/{chrome_{100,200}_percent,resources,views_mus_resources,headless_lib}.pak \
-    out/Release/{*.bin,*.so,v8_context_snapshot_generator,mksnapshot,brotli,character_data_generator,xdg-settings,xdg-mime,transport_security_state_generator} \
+    out/Release/{*.bin,*.so,v8_context_snapshot_generator,mksnapshot,brotli,character_data_generator,xdg-settings,xdg-mime,transport_security_state_generator,torque,nasm,protoc,protoc_plugin,top_domain_generator,flatc,bytecode_builtins_list_generator,make_top_domain_list_for_edit_distance} \
     %{buildroot}/%{chromiumdir}/
 
 install -m 755 out/Release/chrome %{buildroot}/%{chromiumdir}/chromium
@@ -1069,15 +1036,6 @@ cp -a out/Release/remoting_start_host %{buildroot}/%{crd_path}/start-host
 cp -a out/Release/remoting_user_session %{buildroot}/%{crd_path}/user-session
 chmod a+s %{buildroot}/%{crd_path}/user-session
 
-# Add directories for policy management
-# https://www.chromium.org/administrators/policy-templates
-# https://www.chromium.org/administrators/linux-quick-start
-mkdir -p %{buildroot}%{_sysconfdir}/chromium/policies/managed
-mkdir -p %{buildroot}%{_sysconfdir}/chromium/policies/recommended
-
-cp -a out/Release/gen/chrome/app/policy/common/html/en-US/*.html .
-cp -a out/Release/gen/chrome/app/policy/linux/examples/chrome.json .
-
 mkdir -p %{buildroot}/%{_sysconfdir}/%{name}/
 
 # chromium
@@ -1113,11 +1071,13 @@ install -Dm644 %{S:3} \
 
 # Mangling fix
 # bash
+%if %{with remote_desktop}
 sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/usr/lib64/chrome-remote-desktop/is-remoting-session
-sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-settings
-sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-mime
 sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{_sysconfdir}/chromium/remoting_native_messaging_host/chrome-remote-desktop-host
 sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{_sysconfdir}/chromium/remoting_native_messaging_host/user-session
+%endif
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-settings
+sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-mime
 # python
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/message.py
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/reflection.py
@@ -1166,8 +1126,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %files
 %license LICENSE
-%doc AUTHORS chrome_policy_list.html *.json
-%config %{_sysconfdir}/%{name}/
+%doc AUTHORS 
 %{_bindir}/%{name}
 %{_datadir}/appdata/%{name}.appdata.xml
 %{_datadir}/applications/%{name}.desktop
@@ -1214,6 +1173,14 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/xdg-mime
 %{chromiumdir}/xdg-settings
 %{_datadir}/drirc.d/10-%{name}.conf
+%{chromiumdir}/bytecode_builtins_list_generator
+%{chromiumdir}/flatc
+%{chromiumdir}/make_top_domain_list_for_edit_distance
+%{chromiumdir}/nasm
+%{chromiumdir}/protoc
+%{chromiumdir}/protoc_plugin
+%{chromiumdir}/top_domain_generator
+%{chromiumdir}/torque
 
 %files libs
 %{chromiumdir}/lib*.so*
@@ -1257,7 +1224,10 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %changelog
 
-* Fri Apr 26 2019 - David Va <davidva AT tuta DOT io> 74.0.3729.108.1
+* Wed May 01 2019 - David Va <davidva AT tuta DOT io> 74.0.3729.131
+- Updated to 74.0.3729.131
+
+* Fri Apr 26 2019 - David Va <davidva AT tuta DOT io> 74.0.3729.108-200.1
 - Updated to 74.0.3729.108
 
 * Wed Mar 13 2019 - David Va <davidva AT tuta DOT io> 73.0.3683.86-123.1
