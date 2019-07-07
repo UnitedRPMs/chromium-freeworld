@@ -1,4 +1,4 @@
-#		chromium
+#		chromium-freeworld
 
 Summary:	A fast webkit-based web browser
  

@@ -12,6 +12,7 @@
 #  [11] https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
 #  [12] https://operasoftware.github.io/upstreamtools/
 #  [13] https://build.opensuse.org/package/show/network:chromium/chromium-beta
+#  [14] https://github.com/saiarcot895/chromium-ubuntu-build
 
 %global _python_bytecompile_extra 1
 %global chromiumdir %{_libdir}/chromium
@@ -20,7 +21,6 @@
 %global __requires_exclude_from ^%{chromiumdir}/libffmpeg.*$
 %global __requires_exclude_from ^%{chromiumdir}/libmedia.*$
 
-
 # Generally chromium is a monster if you compile the source code, enabling all; and takes hours compiling; common users doesn't need all tools.
 %bcond_with devel_tools
 # Chromium users doesn't need chrome-remote-desktop
@@ -28,7 +28,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
@@ -103,8 +103,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    74.0.3729.131
-Release:    265.1
+Version:    75.0.3770.100
+Release:    332.3
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -152,19 +152,25 @@ Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubun
 
 
 #----------------------------------------------------------------------------------------------------------------------------
-# Patches
-Patch1: chromium-swiftshader-default-visibility.patch
-Patch2: chromium-widevine.patch
-Patch3: chromium-remove-no-canonical-prefixes.patch
-# gcc-patches
-Patch4: chromium-Revert-base-Reduce-base-Value-size.patch
-Patch5: chromium-quik-Make-QuicCryptoStream-substreams_-a-std-unique_ptr.patch
-Patch6: widevine-locations.patch
-Patch7: chromium-glibc-2.29.patch
+# Patches 
+Patch1: chromium-widevine.patch
+Patch2: chromium-angle-gcc9.patch
+Patch3: chromium-gcc9-r654570.patch
+Patch4: chromium-gcc9-r666279.patch
+Patch5: chromium-gcc9-r666714.patch
+Patch6: chromium-nacl-llvm-ar.patch
+Patch7: chromium-python2.patch
+Patch8: chromium-webrtc-cstring.patch
+Patch9: widevine-locations.patch
+Patch10: chromium-75-fix-gn-gen.patch
+Patch11: chromium-gl_defines_fix.patch
+Patch12: chromium-75.0.3770.80-SIOCGSTAMP.patch
+Patch13: chromium-remove-const.patch
+
 Patch22: gtk2.patch
 # VAAPI
 Patch23: vaapi.patch
-
+Patch24: vaapi-fix.patch
 
 ExclusiveArch: x86_64 
 
@@ -188,10 +194,10 @@ BuildRequires: java-openjdk-headless
 BuildRequires: javapackages-tools
 %endif
 BuildRequires: xz
-#BuildRequires: glibc32
+BuildRequires: glibc32
 #BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
-BuildRequires: libgcc(x86-32) 
-BuildRequires: glibc(x86-32) 
+#BuildRequires: libgcc(x86-32) 
+#BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -321,6 +327,7 @@ BuildRequires:	at-spi2-core-devel
 BuildRequires:	ncurses-compat-libs
 %endif
 BuildRequires:	libevent-devel
+BuildRequires:	pipewire-devel >= 0.2
 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
@@ -390,9 +397,7 @@ members of the Chromium and WebDriver teams.
 %package libs-media
 Summary: Chromium media libraries built with all possible codecs
 Provides: %{name}-libs-media%{_isa} = %{version}-%{release}
-Provides: libffmpeg.so()(64bit)
-Provides: chromium-libs-media-freeworld = %{version}
-
+Provides: libffmpeg.so()(64bit) 
 
 %description libs-media
 Chromium media libraries built with all possible codecs. Chromium is an
@@ -524,14 +529,19 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch4 -p1
 %patch5 -p1
 %patch6 -p1
-%if 0%{?fedora} >= 30
 %patch7 -p1
-%endif
+%patch8 -p1
+%patch9 -p1
+%patch10 -p1
+%patch11 -p1
+%patch12 -p1
+%patch13 -p1
 %if %{with gtk2}
 %patch22 -p1
 %endif
 %if %{with vaapi}
 %patch23 -p1
+%patch24 -p1
 %endif
 
 # Change shebang in all relevant files in this directory and all subdirectories
@@ -547,7 +557,7 @@ export PATH="$HOME/bin/:$PATH"
 python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     base/third_party/dmg_fp \
     base/third_party/dynamic_annotations \
-    base/third_party/icu \
+    base/third_party/icu\
     base/third_party/nspr \
     base/third_party/superfasthash \
     base/third_party/symbolize \
@@ -560,7 +570,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     courgette/third_party \
     net/third_party/mozilla_security_manager \
     net/third_party/nss \
-    net/third_party/quic \
+    net/third_party/quiche \
     net/third_party/uri_template \
     third_party/abseil-cpp \
     third_party/angle \
@@ -578,6 +588,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/angle/third_party/vulkan-tools \
     third_party/angle/third_party/vulkan-validation-layers \
     third_party/apple_apsl \
+    third_party/axe-core \
     third_party/blink \
     third_party/boringssl \
     third_party/boringssl/src/third_party/fiat \
@@ -599,14 +610,15 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/cld_3 \
     third_party/closure_compiler \
     third_party/crashpad \
+    third_party/crashpad/crashpad/third_party/lss \
     third_party/crashpad/crashpad/third_party/zlib \
     third_party/crc32c \
     third_party/cros_system_api \
     third_party/dav1d \
+    third_party/dawn \
     third_party/devscripts \
     third_party/dom_distiller_js \
     third_party/emoji-segmenter \
-    third_party/fips181 \
     third_party/flatbuffers \
     third_party/flot \
     third_party/freetype \
@@ -640,7 +652,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/llvm \
     third_party/lss \
     third_party/lzma_sdk \
-    third_party/mesa \
     third_party/metrics_proto \
     third_party/modp_b64 \
     third_party/nasm \
@@ -659,6 +670,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/pdfium/third_party/libpng16 \
     third_party/pdfium/third_party/libtiff \
     third_party/pdfium/third_party/skia_shared \
+    third_party/pffft \
     third_party/polymer \
     third_party/protobuf \
     third_party/protobuf/third_party/six \
@@ -671,7 +683,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/skia/include/third_party/vulkan/vulkan \
     third_party/skia/third_party/gif \
     third_party/skia/third_party/skcms \
-    third_party/skia/third_party/vulkan \
+    third_party/skia/third_party/vulkanmemoryallocator \
     third_party/smhasher \
     third_party/spirv-headers \
     third_party/SPIRV-Tools \
@@ -702,12 +714,11 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     v8/src/third_party/valgrind \
     v8/third_party/inspector_protocol \
     v8/third_party/v8 \
+    third_party/yasm \
+    third_party/xdg-utils \
+    third_party/usb_ids \
     third_party/adobe \
     third_party/speech-dispatcher \
-    third_party/usb_ids \
-    third_party/xdg-utils \
-    third_party/yasm/run_yasm.py \
-    tools/gn/base/third_party/icu \
    third_party/libvpx \
     third_party/libvpx/source/libvpx/third_party/x86inc \
 %if !%{with re2_external}
@@ -785,7 +796,7 @@ ln -s %{python2_sitelib}/jinja2 third_party/jinja2
 
 
 %if %{with system_ply}
-rmdir third_party/ply
+rm -rf third_party/ply
 ln -s %{python2_sitelib}/ply third_party/ply
 %endif
 
@@ -837,6 +848,7 @@ export CXXFLAGS="$CXXFLAGS -fno-delete-null-pointer-checks"
 export AR=ar NM=nm
 export PNACLPYTHON=%{__python2}
 
+# GN conf
 _flags+=(
     'is_debug=false'
 %if %{with clang}
@@ -882,7 +894,6 @@ _flags+=(
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
     'enable_nacl=false'
-    'remove_webcore_debug_symbols=true'
 %if %{with swiftshader}
     'enable_swiftshader=true'
 %else
@@ -911,12 +922,15 @@ _flags+=(
     'use_jumbo_build=true'
     'jumbo_file_merge_limit=8'
 %endif
+    'rtc_use_pipewire=true'
+    'rtc_link_pipewire=true'
     'concurrent_links=1'
 )
 
 
 # Build files for Ninja #
-gn gen --script-executable=/usr/bin/python2 --args="${_flags[*]}" out/Release --fail-on-unused-args
+gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
+
 
 
 # SUPER POWER!
@@ -1076,8 +1090,8 @@ sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/usr/lib64/chrome-remote-deskto
 sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{_sysconfdir}/chromium/remoting_native_messaging_host/chrome-remote-desktop-host
 sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{_sysconfdir}/chromium/remoting_native_messaging_host/user-session
 %endif
-sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-settings
-sed -i 's|/bin/bash|/usr/bin/bash|g' %{buildroot}/%{chromiumdir}/xdg-mime
+sed -i 's|/bin/sh|/usr/bin/sh|g' %{buildroot}/%{chromiumdir}/xdg-settings
+sed -i 's|/bin/sh|/usr/bin/sh|g' %{buildroot}/%{chromiumdir}/xdg-mime
 # python
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/message.py
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/reflection.py
@@ -1094,7 +1108,7 @@ sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/prot
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/descriptor.py
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/service.py
 sed -i '1 i\#!/usr/bin/python2'  %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/text_format.py
-
+sed -i '1 i\#!/usr/bin/python2'	 %{buildroot}/%{chromiumdir}/pyproto/google/protobuf/internal/_parameterized.py
 
 %post
 touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
@@ -1223,6 +1237,12 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Sun Jun 23 2019 - David Va <davidva AT tuta DOT io> 75.0.3770.100
+- Updated to 75.0.3770.100
+
+* Fri May 17 2019 - David Va <davidva AT tuta DOT io> 74.0.3729.157
+- Updated to 74.0.3729.157
 
 * Wed May 01 2019 - David Va <davidva AT tuta DOT io> 74.0.3729.131
 - Updated to 74.0.3729.131
