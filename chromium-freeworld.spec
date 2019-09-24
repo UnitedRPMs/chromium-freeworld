@@ -522,15 +522,12 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
-#patch5 -p1
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
 %patch9 -p1
-#patch10 -p1
 %patch11 -p1
 %patch12 -p1
-#patch13 -p1
 %if %{with gtk2}
 %patch22 -p1
 %endif
@@ -1149,14 +1146,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_datadir}/appdata/%{name}.appdata.xml
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/gnome-control-center/default-apps/%{name}.xml
-%{_datadir}/icons/hicolor/16x16/apps/chromium.png
-%{_datadir}/icons/hicolor/22x22/apps/chromium.png
-%{_datadir}/icons/hicolor/24x24/apps/chromium.png
-%{_datadir}/icons/hicolor/32x32/apps/chromium.png
-%{_datadir}/icons/hicolor/48x48/apps/chromium.png
-%{_datadir}/icons/hicolor/64x64/apps/chromium.png
-%{_datadir}/icons/hicolor/128x128/apps/chromium.png
-%{_datadir}/icons/hicolor/256x256/apps/chromium.png
+%{_datadir}/icons/hicolor/*/apps/chromium.png
 %{_mandir}/man1/chromium.1.gz
 %dir %{chromiumdir}
 %{chromiumdir}/chromium
@@ -1196,7 +1186,6 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/make_top_domain_list_for_edit_distance
 %{chromiumdir}/nasm
 %{chromiumdir}/protoc
-%{chromiumdir}/protoc_plugin
 %{chromiumdir}/top_domain_generator
 %{chromiumdir}/torque
 
