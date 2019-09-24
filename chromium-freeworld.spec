@@ -1008,7 +1008,7 @@ mv -f out/Release/angledata %{buildroot}/%{chromiumdir}/
 mv -f out/Release/swiftshader %{buildroot}/%{chromiumdir}/
 %endif
 
-for size in 22 24 48 64 128 256; do
+for size in 24 48 64 128 256; do
     install -Dm644 chrome/app/theme/chromium/product_logo_$size.png \
       %{buildroot}/%{_datadir}/icons/hicolor/${size}x${size}/apps/chromium.png
   done
