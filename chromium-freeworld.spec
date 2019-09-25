@@ -104,7 +104,7 @@
 
 Name:       chromium-freeworld
 Version:    77.0.3865.90
-Release:    399.1
+Release:    404.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -157,6 +157,8 @@ Patch1: chromium-widevine.patch
 Patch2: chromium-77-fix-gn-gen.patch
 Patch3: chromium-unbundle-zlib.patch
 Patch4: chromium-77-gcc-include.patch
+Patch5: fix-wrong-string-initialization-in-LinkedHashSet.patch
+Patch10: include-limits-in-web_time_range.cc.patch
 Patch6: chromium-nacl-llvm-ar.patch
 Patch7: chromium-python2.patch
 Patch8: chromium-webrtc-cstring.patch
@@ -189,10 +191,10 @@ BuildRequires: java-openjdk-headless
 BuildRequires: javapackages-tools
 %endif
 BuildRequires: xz
-BuildRequires: glibc32
+#BuildRequires: glibc32
 #BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
-#BuildRequires: libgcc(x86-32) 
-#BuildRequires: glibc(x86-32) 
+BuildRequires: libgcc(x86-32) 
+BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -522,6 +524,8 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
+%patch5 -p1
+%patch10 -p1
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
