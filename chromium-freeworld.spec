@@ -13,6 +13,7 @@
 #  [12] https://operasoftware.github.io/upstreamtools/
 #  [13] https://build.opensuse.org/package/show/network:chromium/chromium-beta
 #  [14] https://github.com/saiarcot895/chromium-ubuntu-build
+#  [15] https://git.exherbo.org/desktop.git/tree/packages/net-www/chromium-stable
 
 %global _python_bytecompile_extra 1
 %global chromiumdir %{_libdir}/chromium
@@ -28,7 +29,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 
 %global debug_package %{nil}
@@ -57,11 +58,7 @@
 
 
 # https://github.com/dabeaz/ply/issues/66
-%if 0%{?fedora} >= 24
-%bcond_without system_ply
-%else
 %bcond_with system_ply
-%endif
 
 # Require libxml2 > 2.9.4 for XML_PARSE_NOXXE
 %if 0%{?fedora} >= 27
@@ -103,8 +100,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    77.0.3865.90
-Release:    404.1
+Version:    78.0.3904.97
+Release:    444.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -154,17 +151,24 @@ Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubun
 #----------------------------------------------------------------------------------------------------------------------------
 # Patches 
 Patch1: chromium-widevine.patch
-Patch2: chromium-77-fix-gn-gen.patch
-Patch3: chromium-unbundle-zlib.patch
-Patch4: chromium-77-gcc-include.patch
-Patch5: fix-wrong-string-initialization-in-LinkedHashSet.patch
-Patch10: include-limits-in-web_time_range.cc.patch
-Patch6: chromium-nacl-llvm-ar.patch
-Patch7: chromium-python2.patch
-Patch8: chromium-webrtc-cstring.patch
-Patch9: widevine-locations.patch
-Patch11: chromium-gl_defines_fix.patch
-Patch12: chromium-75.0.3770.80-SIOCGSTAMP.patch
+Patch2: chromium-unbundle-zlib.patch
+Patch3: chromium-78-include.patch
+Patch4: chromium-nacl-llvm-ar.patch
+Patch5: chromium-python2.patch
+Patch6: widevine-locations.patch
+Patch7: chromium-gl_defines_fix.patch
+Patch8: chromium-dns-util-libstdc++-fix.patch
+Patch9: chromium-freeworld/chromium-remove-no-canonical-prefixes.patch
+Patch10: chromium-swiftshader-default-visibility.patch
+Patch11: fix-shutdown-crash-in-ProfileManager.patch
+Patch12: fix-spammy-unique-font-matching-log.patch
+Patch13: chromium-78-gcc-enum-range.patch
+Patch14: chromium-78-gcc-noexcept.patch
+Patch15: chromium-78-icon.patch
+Patch16: chromium-78-protobuf-export.patch
+Patch17: chromium-77-clang.patch
+Patch18: suppress-newer-clang-warning-flags.patch
+
 Patch22: gtk2.patch
 # VAAPI
 Patch24: enable_vaapi_on_linux_2.diff
@@ -191,10 +195,10 @@ BuildRequires: java-openjdk-headless
 BuildRequires: javapackages-tools
 %endif
 BuildRequires: xz
-#BuildRequires: glibc32
+BuildRequires: glibc32
 #BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
-BuildRequires: libgcc(x86-32) 
-BuildRequires: glibc(x86-32) 
+#BuildRequires: libgcc(x86-32) 
+#BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -427,6 +431,9 @@ tar xJf %{_builddir}/chromium-%{version}.tar.xz -C %{_builddir}
 %setup -T -D -n chromium-%{version} 
 %endif
 
+# Our cool project
+sed -i 's|Developer Build|UnitedRPMs Build|' components/version_ui_strings.grdp
+
 %if %{with clang_bundle}
 tar xJf %{S:23} -C %{_builddir}
 pushd %{_builddir}
@@ -525,13 +532,19 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch10 -p1
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
 %patch9 -p1
+%patch10 -p1
 %patch11 -p1
 %patch12 -p1
+%patch13 -p1
+%patch14 -p1
+%patch15 -p1
+%patch16 -p1
+%patch17 -p1
+%patch18 -p1
 %if %{with gtk2}
 %patch22 -p1
 %endif
@@ -539,9 +552,11 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch24 -p1
 %endif
 
+
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
 # find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
+find -depth -type f -writable -name "*.py" -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 
 
 # python2 fix
@@ -551,9 +566,9 @@ export PATH="$HOME/bin/:$PATH"
 
 python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     base/third_party/cityhash \
-    base/third_party/dmg_fp \
+    base/third_party/double_conversion/double-conversion \
     base/third_party/dynamic_annotations \
-    base/third_party/icu\
+    base/third_party/icu \
     base/third_party/nspr \
     base/third_party/superfasthash \
     base/third_party/symbolize \
@@ -600,6 +615,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/catapult/third_party/polymer \
     third_party/catapult/tracing/third_party/d3 \
     third_party/catapult/tracing/third_party/gl-matrix \
+    third_party/catapult/tracing/third_party/jpeg-js \
     third_party/catapult/tracing/third_party/jszip \
     third_party/catapult/tracing/third_party/mannwhitneyu \
     third_party/catapult/tracing/third_party/oboe \
@@ -614,6 +630,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/cros_system_api \
     third_party/dav1d \
     third_party/dawn \
+    third_party/depot_tools \
     third_party/devscripts \
     third_party/dom_distiller_js \
     third_party/emoji-segmenter \
@@ -655,6 +672,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/node \
     third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
     third_party/one_euro_filter \
+    third_party/openscreen \
+    third_party/openscreen/src/third_party/tinycbor \
     third_party/ots \
     third_party/perfetto \
     third_party/pdfium \
@@ -669,7 +688,9 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/pdfium/third_party/skia_shared \
     third_party/pffft \
     third_party/polymer \
+    third_party/private-join-and-compute \
     third_party/protobuf \
+    third_party/protobuf/third_party/six \
     third_party/pyjson5/src/json5 \
     third_party/qcms \
     third_party/rnnoise \
@@ -688,8 +709,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/swiftshader \
     third_party/swiftshader/third_party/llvm-7.0 \
     third_party/swiftshader/third_party/llvm-subzero \
+    third_party/swiftshader/third_party/SPIRV-Headers \
     third_party/swiftshader/third_party/subzero \
-    third_party/swiftshader/third_party/SPIRV-Headers/include/spirv/unified1 \
     third_party/tcmalloc \
     third_party/unrar \
     third_party/usrsctp \
@@ -713,17 +734,17 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     v8/src/third_party/valgrind \
     v8/third_party/inspector_protocol \
     v8/third_party/v8 \
-    third_party/yasm \
-    third_party/xdg-utils \
-    third_party/usb_ids \
     third_party/adobe \
     third_party/speech-dispatcher \
+    third_party/usb_ids \
+    third_party/xdg-utils \
+    third_party/yasm/run_yasm.py \
+    tools/gn/base/third_party/icu \
     third_party/libvpx \
     third_party/libvpx/source/libvpx/third_party/x86inc \
-    third_party/openscreen \
-    third_party/openscreen/src/third_party/tinycbor/src/src \
     third_party/catapult/third_party/six \
     third_party/protobuf/third_party/six \
+    tools/grit/third_party/six \
     third_party/catapult/third_party/beautifulsoup4 \
     third_party/catapult/third_party/html5lib-python \
 %if !%{with re2_external}
@@ -1234,6 +1255,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Nov 07 2019 - David Va <davidva AT tuta DOT io> 78.0.3904.97
+- Updated to 78.0.3904.97
 
 * Thu Sep 19 2019 - David Va <davidva AT tuta DOT io> 77.0.3865.90
 - Updated to 77.0.3865.90

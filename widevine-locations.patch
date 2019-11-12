@@ -1,17 +1,30 @@
-description: try alternative locations for libwidevinecdm.so
-  - $HOME/.local/lib/ (snap-friendly, see https://launchpad.net/bugs/1738149)
-author: Olivier Tilloy <olivier.tilloy@canonical.com>
-
---- a/chrome/common/chrome_paths.cc
-+++ b/chrome/common/chrome_paths.cc
-@@ -373,6 +373,11 @@ bool PathProvider(int key, base::FilePat
+--- a/chrome/common/chrome_paths.cc	2019-11-06 16:31:15.000000000 -0600
++++ b/chrome/common/chrome_paths-NEW.cc	2019-11-09 15:20:43.043673073 -0600
+@@ -375,6 +375,28 @@
      // TODO(crbug.com/663554): Remove this after component updated CDM is
      // supported on Linux and ChromeOS.
      case chrome::FILE_WIDEVINE_CDM:
-+      base::PathService::Get(base::DIR_HOME, &cur);
-+      cur = cur.Append(FILE_PATH_LITERAL(".local/lib/libwidevinecdm.so"));
-+      if (base::PathExists(cur)) {
++      if (base::PathExists(base::FilePath("/usr/lib64/chromium/libwidevinecdm.so"))) {
++        cur = cur.AppendASCII("/usr/lib64/chromium/libwidevinecdm.so");
 +        break;
++      }
++	if (base::PathExists(base::FilePath(".local/lib/libwidevinecdm.so"))) {
++        cur = cur.AppendASCII(".local/lib/libwidevinecdm.so");
++        break;
++      }
++	if (base::PathExists(base::FilePath("/usr/lib64/chromium-browser/libwidevinecdm.so"))) {
++        cur = cur.AppendASCII("/usr/lib64/chromium-browser/libwidevinecdm.so");
++        break;
++      }
++      if (base::PathExists(base::FilePath("/opt/google/chrome/libwidevinecdm.so"))) {
++        cur = cur.AppendASCII("/opt/google/chrome/libwidevinecdm.so");
++        break;
++      }
++      if (!base::PathService::Get(chrome::DIR_USER_DATA, &cur))
++          return false;
++      cur = cur.AppendASCII(base::GetNativeLibraryName(kWidevineCdmLibraryName));
++      if (base::PathExists(cur)) {
++          break;
 +      }
        if (!GetComponentDirectory(&cur))
          return false;
