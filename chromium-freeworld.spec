@@ -29,7 +29,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 
 %global debug_package %{nil}
@@ -100,8 +100,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    78.0.3904.97
-Release:    444.1
+Version:    78.0.3904.108
+Release:    404.3
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -1255,6 +1255,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Thu Nov 28 2019 - David Va <davidva AT tuta DOT io> 78.0.3904.108
+- Updated to 78.0.3904.108
 
 * Thu Nov 07 2019 - David Va <davidva AT tuta DOT io> 78.0.3904.97
 - Updated to 78.0.3904.97
