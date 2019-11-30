@@ -101,7 +101,7 @@
 
 Name:       chromium-freeworld
 Version:    78.0.3904.108
-Release:    404.3
+Release:    404.4
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -833,6 +833,9 @@ sed -i \
 
 sed -i \
     -e '/"-Wno-defaulted-function-deleted"/d' build/config/compiler/BUILD.gn
+
+sed -i \
+    -e '/"-Wextra-semi-stmt"/d' build/config/compiler/BUILD.gn
 
 sed -i \
     -e '/"-Qunused-arguments"/d' \
