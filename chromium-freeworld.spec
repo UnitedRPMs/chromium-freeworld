@@ -101,7 +101,7 @@
 
 Name:       chromium-freeworld
 Version:    78.0.3904.108
-Release:    404.4
+Release:    406.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
