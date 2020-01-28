@@ -1,3 +1,20 @@
+#
+# spec file for package chromium-freeworld
+#
+# Copyright (c) 2020 UnitedRPMs.
+#
+# All modifications and additions to the file contributed by third parties
+# remain the property of their copyright owners, unless otherwise agreed
+# upon. The license for this file, and modifications and additions to the
+# file, is the same license as for the pristine package itself (unless the
+# license for the pristine package is not an Open Source License, in which
+# case the license is the MIT License). An "Open Source License" is a
+# license that conforms to the Open Source Definition (Version 1.9)
+# published by the Open Source Initiative.
+
+# Please submit bugfixes or comments via https://goo.gl/zqFJft
+#
+
 # These spec file includes some tips and patches thanks to:
 #  [1] https://www.archlinux.org/packages/extra/x86_64/chromium/
 #  [2] https://packages.gentoo.org/packages/www-client/chromium
@@ -15,6 +32,9 @@
 #  [14] https://github.com/saiarcot895/chromium-ubuntu-build
 #  [15] https://git.exherbo.org/desktop.git/tree/packages/net-www/chromium-stable
 
+%undefine _debuginfo_subpackages
+%undefine _debugsource_packages
+
 %global _python_bytecompile_extra 1
 %global chromiumdir %{_libdir}/chromium
 %global crd_path %{_libdir}/chrome-remote-desktop
@@ -29,10 +49,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
-
-
-%global debug_package %{nil}
+%bcond_without normalsource
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -83,9 +100,9 @@
 # Now is easy to use the external ffmpeg...
 %bcond_without system_ffmpeg
 
-# Jumbo / Unity builds
+# Jumbo / Unity builds (deprecated)
 # https://chromium.googlesource.com/chromium/src/+/lkcr/docs/jumbo.md
-%bcond_without jumbo_unity
+%bcond_with jumbo_unity
 
 # Vaapi conditional
 %bcond_without vaapi
@@ -100,8 +117,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    78.0.3904.108
-Release:    406.1
+Version:    80.0.3964.0
+Release:    552
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -150,35 +167,29 @@ Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubun
 
 #----------------------------------------------------------------------------------------------------------------------------
 # Patches 
-Patch1: chromium-widevine.patch
-Patch2: chromium-unbundle-zlib.patch
-Patch3: chromium-78-include.patch
-Patch4: chromium-nacl-llvm-ar.patch
-Patch5: chromium-python2.patch
-Patch6: widevine-locations.patch
+Patch1: widevine-other-locations.patch
+Patch2: widevine-allow-on-linux.patch
+Patch3: chromium-unbundle-zlib.patch
+Patch4: chromium-80-include.patch
+Patch5: chromium-nacl-llvm-ar.patch
+Patch6: chromium-python2.patch
 Patch7: chromium-gl_defines_fix.patch
-Patch8: chromium-dns-util-libstdc++-fix.patch
-Patch9: chromium-freeworld/chromium-remove-no-canonical-prefixes.patch
-Patch10: chromium-swiftshader-default-visibility.patch
-Patch11: fix-shutdown-crash-in-ProfileManager.patch
-Patch12: fix-spammy-unique-font-matching-log.patch
-Patch13: chromium-78-gcc-enum-range.patch
-Patch14: chromium-78-gcc-noexcept.patch
-Patch15: chromium-78-icon.patch
-Patch16: chromium-78-protobuf-export.patch
-Patch17: chromium-77-clang.patch
-Patch18: suppress-newer-clang-warning-flags.patch
+Patch8: chromium-remove-no-canonical-prefixes.patch
+Patch9: chromium-swiftshader-default-visibility.patch
+Patch10: fix-spammy-unique-font-matching-log.patch
+Patch11: chromium-77-clang.patch
+Patch12: notifications-nicer.patch
+Patch13: sync-enable-USSPasswords-by-default.patch
+Patch14: chromium-80-unbundle-libxml.patch
+Patch15: bluetooth_uuid-chromium-80.patch
+Patch16: 8581641.diff
 
 Patch22: gtk2.patch
+
 # VAAPI
 Patch24: enable_vaapi_on_linux_2.diff
 
 ExclusiveArch: x86_64 
-
-# Make sure we don't encounter GCC 5.1 bug
-#if 0%{?fedora} >= 22
-#BuildRequires:	gcc-c++
-#endif
 
 %if %{with clang} || %{with require_clang} 
 BuildRequires: clang llvm
@@ -196,7 +207,6 @@ BuildRequires: javapackages-tools
 %endif
 BuildRequires: xz
 BuildRequires: glibc32
-#BuildRequires: /lib/libc.so.6 /usr/lib/libc.so
 #BuildRequires: libgcc(x86-32) 
 #BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
@@ -349,7 +359,7 @@ Requires: libva-intel-hybrid-driver
 Recommends: u2f-hidraw-policy
 %endif
 
-Obsoletes: chromium 
+Obsoletes: chromium = %{version}-%{release}
 Recommends: liberation-fonts
 Recommends: chromium-pepper-flash
 Recommends: chromium-widevine
@@ -375,7 +385,7 @@ Summary: Shared libraries used by chromium (and chrome-remote-desktop)
 Requires: %{name}-libs-media%{_isa} = %{version}-%{release}
 %endif
 Provides: %{name}-libs%{_isa} = %{version}-%{release}
-Obsoletes: chromium-libs 
+Obsoletes: chromium-libs = %{version}-%{release}
 
 %description libs
 Shared libraries used by chromium (and chrome-remote-desktop).
@@ -530,7 +540,7 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
-%patch4 -p1
+#patch4 -p1
 %patch5 -p1
 %patch6 -p1
 %patch7 -p1
@@ -543,8 +553,7 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch14 -p1
 %patch15 -p1
 %patch16 -p1
-%patch17 -p1
-%patch18 -p1
+
 %if %{with gtk2}
 %patch22 -p1
 %endif
@@ -603,8 +612,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/blink \
     third_party/boringssl \
     third_party/boringssl/src/third_party/fiat \
-    third_party/boringssl/src/third_party/sike \
-    third_party/boringssl/linux-x86_64/crypto/third_party/sike \
     third_party/breakpad \
     third_party/breakpad/breakpad/src/third_party/curl \
     third_party/brotli \
@@ -632,6 +639,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/dawn \
     third_party/depot_tools \
     third_party/devscripts \
+    third_party/devtools-frontend \
+    third_party/devtools-frontend/src/third_party \
     third_party/dom_distiller_js \
     third_party/emoji-segmenter \
     third_party/flatbuffers \
@@ -709,6 +718,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/swiftshader \
     third_party/swiftshader/third_party/llvm-7.0 \
     third_party/swiftshader/third_party/llvm-subzero \
+    third_party/swiftshader/third_party/marl \
     third_party/swiftshader/third_party/SPIRV-Headers \
     third_party/swiftshader/third_party/subzero \
     third_party/tcmalloc \
@@ -727,6 +737,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/webrtc/rtc_base/third_party/sigslot \
     third_party/widevine \
     third_party/woff2 \
+    third_party/wuffs \
     third_party/zlib/google \
     url/third_party/mozilla \
     v8/src/third_party/siphash \
@@ -838,6 +849,18 @@ sed -i \
     -e '/"-Wextra-semi-stmt"/d' build/config/compiler/BUILD.gn
 
 sed -i \
+    -e '/"-Wno-implicit-int-float-conversion"/d' build/config/compiler/BUILD.gn
+
+sed -i \
+    -e '/"-Wno-c99-designator"/d' build/config/compiler/BUILD.gn
+
+sed -i \
+    -e '/"-Wno-final-dtor-non-final-class"/d' build/config/compiler/BUILD.gn
+
+sed -i \
+    -e '/"-Wno-sizeof-array-div"/d' build/config/compiler/BUILD.gn
+
+sed -i \
     -e '/"-Qunused-arguments"/d' \
     build/config/compiler/BUILD.gn
 
@@ -928,7 +951,6 @@ _flags+=(
 %else
     'enable_swiftshader=false'
 %endif
-    'enable_hevc_demuxing=true'
     "google_api_key=\"AIzaSyD1hTe85_a14kr1Ks8T3Ce75rvbR1_Dx7Q\""
     "google_default_client_id=\"4139804441.apps.googleusercontent.com\""
     "google_default_client_secret=\"KDTRKEZk2jwT_7CDpcmMA--P\""
@@ -1005,7 +1027,8 @@ install -m 644 %{SOURCE13} %{buildroot}%{_datadir}/appdata/
 # Brute Copy
 cp \
     out/Release/{chrome_{100,200}_percent,resources,headless_lib}.pak \
-    out/Release/{*.bin,*.so,v8_context_snapshot_generator,mksnapshot,brotli,character_data_generator,xdg-settings,xdg-mime,transport_security_state_generator,torque,nasm,protoc,top_domain_generator,flatc,bytecode_builtins_list_generator,make_top_domain_list_for_edit_distance} \
+    out/Release/{*.bin,*.so,v8_context_snapshot_generator,mksnapshot,brotli,character_data_generator,xdg-settings,xdg-mime,transport_security_state_generator,torque,nasm,protoc,top_domain_generator,flatc,bytecode_builtins_list_generator} \
+    out/Release/{cddl,crashpad_handler,protozero_plugin,cppgen_plugin,generate_colors_info,make_top_domain_list_variables,gen-regexp-special-case} \
     %{buildroot}/%{chromiumdir}/
 
 install -m 755 out/Release/chrome %{buildroot}/%{chromiumdir}/chromium
@@ -1186,7 +1209,6 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/icudtl.dat
 %endif
 
-%{chromiumdir}/natives_blob.bin
 %{chromiumdir}/snapshot_blob.bin
 %{chromiumdir}/*.pak
 %dir %{chromiumdir}/PepperFlash/
@@ -1211,16 +1233,21 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{_datadir}/drirc.d/10-%{name}.conf
 %{chromiumdir}/bytecode_builtins_list_generator
 %{chromiumdir}/flatc
-%{chromiumdir}/make_top_domain_list_for_edit_distance
 %{chromiumdir}/nasm
 %{chromiumdir}/protoc
 %{chromiumdir}/top_domain_generator
 %{chromiumdir}/torque
+%{chromiumdir}/cddl
+%{chromiumdir}/cppgen_plugin
+%{chromiumdir}/crashpad_handler
+%{chromiumdir}/gen-regexp-special-case
+%{chromiumdir}/generate_colors_info
+%{chromiumdir}/make_top_domain_list_variables
+%{chromiumdir}/protozero_plugin
 
 %files libs
 %{chromiumdir}/lib*.so*
-%exclude %{chromiumdir}/libwidevinecdm.so
-%exclude %{chromiumdir}/libwidevinecdmadapter.so
+
 %if !%{with system_ffmpeg}
 %exclude %{chromiumdir}/libffmpeg.so
 %endif
@@ -1258,6 +1285,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Tue Jan 21 2020 - David Va <davidva AT tuta DOT io> 80.0.3964.0
+- Updated to 80.0.3964.0
 
 * Thu Nov 28 2019 - David Va <davidva AT tuta DOT io> 78.0.3904.108
 - Updated to 78.0.3904.108

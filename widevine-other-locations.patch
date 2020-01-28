@@ -1,0 +1,25 @@
+Index: dev/chrome/common/chrome_paths.cc
+===================================================================
+--- dev.orig/chrome/common/chrome_paths.cc
++++ dev/chrome/common/chrome_paths.cc
+@@ -384,6 +384,20 @@ bool PathProvider(int key, base::FilePat
+ 
+ #if defined(OS_LINUX) && BUILDFLAG(BUNDLE_WIDEVINE_CDM)
+     case chrome::DIR_BUNDLED_WIDEVINE_CDM:
++      if (base::PathExists(base::FilePath("/opt/google/chrome-unstable/").AppendASCII(kWidevineCdmBaseDirectory)) {
++        cur = base::FilePath("/opt/google/chrome-unstable/").AppendASCII(kWidevineCdmBaseDirectory);
++        break;
++      }
++      if (base::PathExists(base::FilePath("/opt/google/chrome/").AppendASCII(kWidevineCdmBaseDirectory)) {
++        cur = base::FilePath("/opt/google/chrome/").AppendASCII(kWidevineCdmBaseDirectory);
++        break;
++      }
++      if (!base::PathService::Get(chrome::DIR_USER_DATA, &cur))
++          return false;
++      if (base::PathExists(cur.AppendASCII(kWidevineCdmBaseDirectory)) {
++        cur = cur.AppendASCII(kWidevineCdmBaseDirectory);
++        break;
++      }
+       if (!GetComponentDirectory(&cur))
+         return false;
+ #if !defined(OS_CHROMEOS)
