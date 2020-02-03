@@ -117,8 +117,8 @@
 %bcond_with swiftshader
 
 Name:       chromium-freeworld
-Version:    80.0.3964.0
-Release:    552
+Version:    80.0.3987.66
+Release:    420.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -170,19 +170,17 @@ Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubun
 Patch1: widevine-other-locations.patch
 Patch2: widevine-allow-on-linux.patch
 Patch3: chromium-unbundle-zlib.patch
-Patch4: chromium-80-include.patch
+Patch4: 0001-cros-search-service-Include-cmath-for-std-pow.patch
 Patch5: chromium-nacl-llvm-ar.patch
 Patch6: chromium-python2.patch
 Patch7: chromium-gl_defines_fix.patch
 Patch8: chromium-remove-no-canonical-prefixes.patch
 Patch9: chromium-swiftshader-default-visibility.patch
-Patch10: fix-spammy-unique-font-matching-log.patch
+Patch10: 0001-BookmarkModelMerger-Move-RemoteTreeNode-declaration.patch
 Patch11: chromium-77-clang.patch
 Patch12: notifications-nicer.patch
 Patch13: sync-enable-USSPasswords-by-default.patch
 Patch14: chromium-80-unbundle-libxml.patch
-Patch15: bluetooth_uuid-chromium-80.patch
-Patch16: 8581641.diff
 
 Patch22: gtk2.patch
 
@@ -206,9 +204,9 @@ BuildRequires: java-openjdk-headless
 BuildRequires: javapackages-tools
 %endif
 BuildRequires: xz
-BuildRequires: glibc32
-#BuildRequires: libgcc(x86-32) 
-#BuildRequires: glibc(x86-32) 
+#BuildRequires: glibc32
+BuildRequires: libgcc(x86-32) 
+BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -540,7 +538,7 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
-#patch4 -p1
+%patch4 -p1
 %patch5 -p1
 %patch6 -p1
 %patch7 -p1
@@ -551,8 +549,6 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch12 -p1
 %patch13 -p1
 %patch14 -p1
-%patch15 -p1
-%patch16 -p1
 
 %if %{with gtk2}
 %patch22 -p1
@@ -644,8 +640,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/dom_distiller_js \
     third_party/emoji-segmenter \
     third_party/flatbuffers \
-    third_party/flot \
     third_party/freetype \
+    third_party/libgifcodec \
     third_party/google_input_tools \
     third_party/google_input_tools/third_party/closure_library \
     third_party/google_input_tools/third_party/closure_library/third_party/closure \
@@ -708,7 +704,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/skia \
     third_party/skia/include/third_party/skcms \
     third_party/skia/include/third_party/vulkan/vulkan \
-    third_party/skia/third_party/gif \
     third_party/skia/third_party/skcms \
     third_party/skia/third_party/vulkanmemoryallocator \
     third_party/smhasher \
@@ -859,7 +854,16 @@ sed -i \
 
 sed -i \
     -e '/"-Wno-sizeof-array-div"/d' build/config/compiler/BUILD.gn
-
+    
+sed -i \
+    -e '/"-Wno-bitwise-conditional-parentheses"/d' build/config/compiler/BUILD.gn 
+    
+sed -i \
+    -e '/"-Wno-builtin-assume-aligned-alignment"/d' build/config/compiler/BUILD.gn 
+    
+    sed -i \
+    -e '/"-Wno-deprecated-copy"/d' build/config/compiler/BUILD.gn
+            
 sed -i \
     -e '/"-Qunused-arguments"/d' \
     build/config/compiler/BUILD.gn
@@ -1285,6 +1289,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Jan 29 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.66
+- Updated to 80.0.3987.66
 
 * Tue Jan 21 2020 - David Va <davidva AT tuta DOT io> 80.0.3964.0
 - Updated to 80.0.3964.0
