@@ -49,7 +49,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 # clang is necessary for a fast build
 %bcond_without clang
