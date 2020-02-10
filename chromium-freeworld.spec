@@ -49,7 +49,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -116,9 +116,12 @@
 # swiftshader conditional
 %bcond_with swiftshader
 
+# 
+%define _legacy_common_support 1
+
 Name:       chromium-freeworld
-Version:    80.0.3987.66
-Release:    420.1
+Version:    80.0.3987.87
+Release:    510.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -204,9 +207,9 @@ BuildRequires: java-openjdk-headless
 BuildRequires: javapackages-tools
 %endif
 BuildRequires: xz
-#BuildRequires: glibc32
-BuildRequires: libgcc(x86-32) 
-BuildRequires: glibc(x86-32) 
+BuildRequires: glibc32
+#BuildRequires: libgcc(x86-32) 
+#BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -334,6 +337,7 @@ BuildRequires:	subversion
 BuildRequires:	at-spi2-core-devel
 %if %{with clang_bundle}
 BuildRequires:	ncurses-compat-libs
+BuildRequires:  z3-libs
 %endif
 BuildRequires:	libevent-devel
 BuildRequires:	pipewire-devel >= 0.2
@@ -446,7 +450,10 @@ sed -i 's|Developer Build|UnitedRPMs Build|' components/version_ui_strings.grdp
 tar xJf %{S:23} -C %{_builddir}
 pushd %{_builddir}
 mv -f clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04 buclang 
+pushd buclang/lib/
+ln -sf /usr/lib64/libz3.so.0.0.0 libz3.so.4.8
 popd
+ popd
 %endif
 
 # V8 fix
@@ -566,7 +573,7 @@ find -depth -type f -writable -name "*.py" -exec sed -iE '1s=^#! */usr/bin/\(pyt
 
 # python2 fix
 mkdir -p "$HOME/bin/"
-ln -sfn /usr/bin/python2.7 $HOME/bin/python
+ln -sfn %{__python2} $HOME/bin/python
 export PATH="$HOME/bin/:$PATH"
 
 python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
@@ -992,21 +999,21 @@ gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2
 jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 
 %if %{with remote_desktop}
-ninja-build -C out/Release remoting_all -j$jobs
+%ninja_build -C out/Release remoting_all -j$jobs
 %endif
 
 # HERE the real build
 %if %{with devel_tools}
 %if %{with system_ffmpeg}
-ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver -j$jobs 
+%ninja_build -C out/Release third_party/widevine/cdm media/ffmpeg chrome chrome_sandbox chromedriver -j$jobs 
 %else
-ninja-build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver -j$jobs 
+%ninja_build -C out/Release third_party/widevine/cdm chrome chrome_sandbox chromedriver -j$jobs 
 %endif
 %else
 %if %{with system_ffmpeg}
-ninja-build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
+%ninja_build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
 %else
-ninja-build -C out/Release third_party/widevine/cdm chrome -j$jobs 
+%ninja_build -C out/Release third_party/widevine/cdm chrome -j$jobs 
 %endif
 %endif
 
@@ -1290,8 +1297,8 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %changelog
 
-* Wed Jan 29 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.66
-- Updated to 80.0.3987.66
+* Wed Jan 29 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.87
+- Updated to 80.0.3987.87
 
 * Tue Jan 21 2020 - David Va <davidva AT tuta DOT io> 80.0.3964.0
 - Updated to 80.0.3964.0
