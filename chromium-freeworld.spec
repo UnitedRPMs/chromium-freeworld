@@ -49,7 +49,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_without normalsource
+%bcond_with normalsource
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -120,8 +120,8 @@
 %define _legacy_common_support 1
 
 Name:       chromium-freeworld
-Version:    80.0.3987.87
-Release:    510.1
+Version:    80.0.3987.149
+Release:    513.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -340,7 +340,12 @@ BuildRequires:	ncurses-compat-libs
 BuildRequires:  z3-libs
 %endif
 BuildRequires:	libevent-devel
+
+%if 0%{?fedora} >= 32
+BuildRequires:	pipewire0.2-devel
+%else
 BuildRequires:	pipewire-devel >= 0.2
+%endif
 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
@@ -479,11 +484,19 @@ unzip %{S:15}
 tar xf %{S:16}
 mv MuktiNarrow0.94/MuktiNarrow.ttf .
 rm -rf MuktiNarrow0.94
+%if 0%{?fedora} >= 32
+cp -a /usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf /usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf .
+%else
 cp -a /usr/share/fonts/dejavu/DejaVuSans.ttf /usr/share/fonts/dejavu/DejaVuSans-Bold.ttf .
+%endif
 cp -a /usr/share/fonts/thai-scalable/Garuda.ttf .
 cp -a /usr/share/fonts/lohit-devanagari/Lohit-Devanagari.ttf /usr/share/fonts/lohit-gurmukhi/Lohit-Gurmukhi.ttf /usr/share/fonts/lohit-tamil/Lohit-Tamil.ttf .
 cp -a /usr/share/fonts/google-noto-cjk/NotoSansCJKjp-Regular.otf /usr/share/fonts/google-noto/NotoSansKhmer-Regular.ttf .
+%if 0%{?fedora} >= 33
+cp -a  /usr/share/fonts/google-tinos-fonts/Tinos-*.ttf .
+%else
 cp -a /usr/share/fonts/google-croscore/Tinos-*.ttf .
+%endif
 cp -f %{S:18} .
 #svn checkout --force https://github.com/google/fonts/trunk/apache/arimo . && rm -rf .svn 
 #svn checkout --force https://github.com/google/fonts/trunk/apache/cousine . && rm -rf .svn
@@ -1296,6 +1309,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Wed Mar 18 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.149
+- Updated to 80.0.3987.149
 
 * Wed Jan 29 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.87
 - Updated to 80.0.3987.87
