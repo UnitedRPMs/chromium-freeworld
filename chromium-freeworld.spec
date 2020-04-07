@@ -49,7 +49,7 @@
 #
 # Get the version number of latest stable version
 # $ curl -s 'https://omahaproxy.appspot.com/all?os=linux&channel=stable' | sed 1d | cut -d , -f 3
-%bcond_with normalsource
+%bcond_without normalsource
 
 # clang is necessary for a fast build
 %bcond_without clang
@@ -120,7 +120,7 @@
 %define _legacy_common_support 1
 
 Name:       chromium-freeworld
-Version:    80.0.3987.149
+Version:    80.0.3987.163
 Release:    513.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -308,7 +308,7 @@ BuildRequires: libdrm-devel
 BuildRequires: mesa-libGL-devel
 BuildRequires: mesa-libEGL-devel
 # vulcan
-BuildRequires: vulkan-devel
+#BuildRequires: vulkan-devel
 %if %{with system_libicu}
 BuildRequires: libicu-devel
 %endif
@@ -340,6 +340,7 @@ BuildRequires:	ncurses-compat-libs
 BuildRequires:  z3-libs
 %endif
 BuildRequires:	libevent-devel
+BuildRequires:  expat-devel
 
 %if 0%{?fedora} >= 32
 BuildRequires:	pipewire0.2-devel
@@ -1309,6 +1310,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Sun Apr 05 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.163
+- Updated to 80.0.3987.163
 
 * Wed Mar 18 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.149
 - Updated to 80.0.3987.149
