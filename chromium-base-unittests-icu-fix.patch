@@ -1,0 +1,17 @@
+Source: Tom Briden <tom@decompile.me.uk>             
+Upstream: No                                         
+Reason: Remove icu dependency from base unittests, we
+unbundle and don't run tests anyway
+
+diff --git a/base/BUILD.gn b/base/BUILD.gn
+index 200b8daecfbe7..8443a13ffc3d8 100644
+--- a/base/BUILD.gn
++++ b/base/BUILD.gn
+@@ -2941,7 +2941,6 @@ test("base_unittests") {
+     if (is_android) {
+       deps += [ "//third_party/icu:icu_extra_assets" ]
+     } else {
+-      deps += [ "//third_party/icu:extra_icudata" ]
+       data += [ "$root_out_dir/icudtl_extra.dat" ]
+     }
+   }

@@ -120,8 +120,8 @@
 %define _legacy_common_support 1
 
 Name:       chromium-freeworld
-Version:    80.0.3987.163
-Release:    513.1
+Version:    81.0.4044.138
+Release:    604.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -172,23 +172,28 @@ Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubun
 # Patches 
 Patch1: widevine-other-locations.patch
 Patch2: widevine-allow-on-linux.patch
-Patch3: chromium-unbundle-zlib.patch
-Patch4: 0001-cros-search-service-Include-cmath-for-std-pow.patch
-Patch5: chromium-nacl-llvm-ar.patch
-Patch6: chromium-python2.patch
-Patch7: chromium-gl_defines_fix.patch
-Patch8: chromium-remove-no-canonical-prefixes.patch
-Patch9: chromium-swiftshader-default-visibility.patch
-Patch10: 0001-BookmarkModelMerger-Move-RemoteTreeNode-declaration.patch
-Patch11: chromium-77-clang.patch
-Patch12: notifications-nicer.patch
-Patch13: sync-enable-USSPasswords-by-default.patch
-Patch14: chromium-80-unbundle-libxml.patch
+Patch3: chromium-nacl-llvm-ar.patch
+Patch4: chromium-python2.patch
+Patch5: chromium-base-unittests-icu-fix.patch
+Patch6: chromium-fix-re2-set_utf8.patch
+
+Patch8: chromium-gl_defines_fix.patch
+Patch9: chromium-remove-no-canonical-prefixes.patch
+Patch10: chromium-swiftshader-default-visibility.patch
+Patch11: chromium-unbundle-zlib.patch
+Patch12: chromium-freeworld/chromium-webrtc-r0.patch
 
 Patch22: gtk2.patch
 
 # VAAPI
-Patch24: enable_vaapi_on_linux_2.diff
+Patch23: gpu-timeout.patch
+Patch24: rebuild-Linux-frame-button-cache-when-activation.patch
+Patch25: rename-Relayout-in-DesktopWindowTreeHostPlatform.patch
+Patch26: chromium-81-gcc-10.patch
+
+Patch27: vaapi-build-fix.patch
+Patch29: eglGetMscRateCHROMIUM.patch
+
 
 ExclusiveArch: x86_64 
 
@@ -201,15 +206,11 @@ BuildRequires: bison
 BuildRequires: gperf 
 BuildRequires: hwdata 
 BuildRequires: gn 
-%if 0%{?fedora} >= 29
-BuildRequires: java-openjdk-headless
-%else
-BuildRequires: javapackages-tools
-%endif
+BuildRequires: java-1.8.0-openjdk
 BuildRequires: xz
-BuildRequires: glibc32
-#BuildRequires: libgcc(x86-32) 
-#BuildRequires: glibc(x86-32) 
+#BuildRequires: glibc32
+BuildRequires: libgcc(x86-32) 
+BuildRequires: glibc(x86-32) 
 BuildRequires: redhat-rpm-config
 BuildRequires: libatomic
 BuildRequires: libcap-devel 
@@ -341,6 +342,7 @@ BuildRequires:  z3-libs
 %endif
 BuildRequires:	libevent-devel
 BuildRequires:  expat-devel
+BuildRequires:  mesa-libgbm-devel
 
 %if 0%{?fedora} >= 32
 BuildRequires:	pipewire0.2-devel
@@ -562,20 +564,25 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch4 -p1
 %patch5 -p1
 %patch6 -p1
-%patch7 -p1
+
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
 %patch11 -p1
-%patch12 -p1
-%patch13 -p1
-%patch14 -p1
+
+
+%patch23 -p1
+%patch24 -p1
+%patch25 -p1
+%patch26 -p1
 
 %if %{with gtk2}
 %patch22 -p1
 %endif
 %if %{with vaapi}
-%patch24 -p1
+%patch27 -p1
+
+%patch29 -p1
 %endif
 
 
@@ -617,6 +624,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/angle/src/third_party/compiler \
     third_party/angle/src/third_party/libXNVCtrl \
     third_party/angle/src/third_party/trace_event \
+    third_party/angle/src/third_party/volk \
     third_party/angle/third_party/glslang \
     third_party/angle/third_party/spirv-headers \
     third_party/angle/third_party/spirv-tools \
@@ -657,6 +665,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/depot_tools \
     third_party/devscripts \
     third_party/devtools-frontend \
+    third_party/devtools-frontend/src/front_end/third_party/fabricjs \
+    third_party/devtools-frontend/src/front_end/third_party/wasmparser \
     third_party/devtools-frontend/src/third_party \
     third_party/dom_distiller_js \
     third_party/emoji-segmenter \
@@ -721,7 +731,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/qcms \
     third_party/rnnoise \
     third_party/s2cellid \
-    third_party/sfntly \
     third_party/skia \
     third_party/skia/include/third_party/skcms \
     third_party/skia/include/third_party/vulkan/vulkan \
@@ -766,7 +775,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/usb_ids \
     third_party/xdg-utils \
     third_party/yasm/run_yasm.py \
-    tools/gn/base/third_party/icu \
+    tools/gn/src/base/third_party/icu \
     third_party/libvpx \
     third_party/libvpx/source/libvpx/third_party/x86inc \
     third_party/catapult/third_party/six \
@@ -882,8 +891,11 @@ sed -i \
 sed -i \
     -e '/"-Wno-builtin-assume-aligned-alignment"/d' build/config/compiler/BUILD.gn 
     
-    sed -i \
+sed -i \
     -e '/"-Wno-deprecated-copy"/d' build/config/compiler/BUILD.gn
+    
+sed -i \
+    -e '/"-Wno-misleading-indentation"/d' build/config/compiler/BUILD.gn    
             
 sed -i \
     -e '/"-Qunused-arguments"/d' \
@@ -1310,6 +1322,12 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Tue May 12 2020 - David Va <davidva AT tuta DOT io> 81.0.4044.138
+- Updated to 81.0.4044.138
+
+* Sun Apr 12 2020 - David Va <davidva AT tuta DOT io> 81.0.4044.92
+- Updated to 81.0.4044.92
 
 * Sun Apr 05 2020 - David Va <davidva AT tuta DOT io> 80.0.3987.163
 - Updated to 80.0.3987.163

@@ -7,19 +7,14 @@ Date: Fri, 28 Jun 2019 15:56:23 +0000
 Subject: [PATCH] update zlib
 
 ---
- third_party/perfetto/gn/BUILD.gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/third_party/perfetto/gn/BUILD.gn.old b/third_party/perfetto/gn/BUILD.gn
-index 6e2afb4..260d4c3 100644
---- a/third_party/perfetto/gn/BUILD.gn.old
-+++ b/third_party/perfetto/gn/BUILD.gn
-@@ -276,7 +276,7 @@ if (enable_perfetto_trace_processor || enable_perfetto_platform_services) {
-         "//buildtools:zlib",
-       ]
+--- a/third_party/perfetto/gn/BUILD.gn.old	2020-02-13 21:37:52.314600930 +0000
++++ b/third_party/perfetto/gn/BUILD.gn	2020-02-13 21:42:25.694349607 +0000
+@@ -294,7 +294,7 @@
+       public_configs = [ "//buildtools:zlib_config" ]
+       public_deps = [ "//buildtools:zlib" ]
      } else {
 -      public_configs = [ "//third_party/zlib:zlib_config" ]
 +      public_configs = [ "//third_party/zlib:system_zlib" ]
-       public_deps = [
-         "//third_party/zlib",
-       ]
+       public_deps = [ "//third_party/zlib" ]
+     }
+   }
