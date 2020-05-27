@@ -121,7 +121,7 @@
 
 Name:       chromium-freeworld
 Version:    81.0.4044.138
-Release:    604.1
+Release:    606.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -151,6 +151,7 @@ Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
 # Unpackaged fonts
+Source14:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/Garuda.ttf
 Source15:	https://fontlibrary.org/assets/downloads/gelasio/4d610887ff4d445cbc639aae7828d139/gelasio.zip
 Source16:	http://download.savannah.nongnu.org/releases/freebangfont/MuktiNarrow-0.94.tar.bz2
 Source17:	https://chromium.googlesource.com/chromium/src.git/+archive/refs/heads/master/third_party/test_fonts.tar.gz
@@ -492,7 +493,7 @@ cp -a /usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf /usr/share/fonts/dejavu-
 %else
 cp -a /usr/share/fonts/dejavu/DejaVuSans.ttf /usr/share/fonts/dejavu/DejaVuSans-Bold.ttf .
 %endif
-cp -a /usr/share/fonts/thai-scalable/Garuda.ttf .
+cp -a %{S:14} .  
 cp -a /usr/share/fonts/lohit-devanagari/Lohit-Devanagari.ttf /usr/share/fonts/lohit-gurmukhi/Lohit-Gurmukhi.ttf /usr/share/fonts/lohit-tamil/Lohit-Tamil.ttf .
 cp -a /usr/share/fonts/google-noto-cjk/NotoSansCJKjp-Regular.otf /usr/share/fonts/google-noto/NotoSansKhmer-Regular.ttf .
 %if 0%{?fedora} >= 33
@@ -1322,6 +1323,9 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Mon May 25 2020 - David Va <davidva AT tuta DOT io> 81.0.4044.138-606.1
+- Rebuilt for ffmpeg and openh264
 
 * Tue May 12 2020 - David Va <davidva AT tuta DOT io> 81.0.4044.138
 - Updated to 81.0.4044.138
