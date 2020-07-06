@@ -1,0 +1,24 @@
+Upstream: Pending
+Source: https://chromium-review.googlesource.com/c/chromium/src/+/2152831
+
+From 88b4094f86f7075fab67f362be391c11c23e7dbf Mon Sep 17 00:00:00 2001
+From: Stephan Hartmann <stha09@googlemail.com>
+Date: Fri, 17 Apr 2020 06:23:26 +0000
+Subject: [PATCH] IWYU: std::unique_ptr is defined in memory
+
+Change-Id: I0a323aa026cae2336ff2dd0b4861468593d1f5f2
+---
+
+diff --git a/third_party/blink/renderer/core/html/trust_token_attribute_parsing.h b/third_party/blink/renderer/core/html/trust_token_attribute_parsing.h
+index f5a7ab0..ef19cfa 100644
+--- a/third_party/blink/renderer/core/html/trust_token_attribute_parsing.h
++++ b/third_party/blink/renderer/core/html/trust_token_attribute_parsing.h
+@@ -5,6 +5,8 @@
+ #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_HTML_TRUST_TOKEN_ATTRIBUTE_PARSING_H_
+ #define THIRD_PARTY_BLINK_RENDERER_CORE_HTML_TRUST_TOKEN_ATTRIBUTE_PARSING_H_
+ 
++#include <memory>
++
+ #include "base/optional.h"
+ #include "services/network/public/mojom/trust_tokens.mojom-blink-forward.h"
+ #include "third_party/blink/renderer/core/core_export.h"

@@ -35,7 +35,9 @@
 %undefine _debuginfo_subpackages
 %undefine _debugsource_packages
 
-%global _python_bytecompile_extra 1
+# Turn off the brp-python-bytecompile automagic
+%global _python_bytecompile_extra 0
+
 %global chromiumdir %{_libdir}/chromium
 %global crd_path %{_libdir}/chrome-remote-desktop
 # Do not check any ffmpeg or libmedia bundle files in libdir for requires
@@ -56,19 +58,11 @@
 # 
 
 # About clang bundle: Necessary in cases where "clang" in system, fails to build chromium.
-%if 0%{?fedora} <= 28
-%bcond_without clang_bundle
-%else
 %bcond_with clang_bundle
-%endif
-
 
 # jinja conditional
-%if 0%{?fedora} < 26
-%bcond_without system_jinja2
-%else
 %bcond_with system_jinja2
-%endif
+
 
 # markupsafe
 %bcond_with system_markupsafe
@@ -78,11 +72,7 @@
 %bcond_with system_ply
 
 # Require libxml2 > 2.9.4 for XML_PARSE_NOXXE
-%if 0%{?fedora} >= 27
 %bcond_without system_libxml2
-%else
-%bcond_with system_libxml2
-%endif
 
 # Require harfbuzz >= 1.5.0 for hb_glyph_info_t
 # hb-aat.h isn't in system anymore...
@@ -120,8 +110,8 @@
 %define _legacy_common_support 1
 
 Name:       chromium-freeworld
-Version:    81.0.4044.138
-Release:    607.1
+Version:    83.0.4103.106
+Release:    653.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -163,38 +153,41 @@ Source21:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fon
 Source22:	https://github.com/pallets/markupsafe/archive/1.1.1.tar.gz
 # Clang bundle
 %if %{with clang_bundle}
-Source23:	https://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+Source23:	https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz
 %endif
 # V8 missed/test 
 #Source24:	https://github.com/v8/v8/archive/7.5.48.tar.gz
+Source25:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/gn/gn-linux-amd64.zip
 
 
 #----------------------------------------------------------------------------------------------------------------------------
 # Patches 
+Patch0: chromium-compiler-r12.patch
 Patch1: widevine-other-locations.patch
 Patch2: widevine-allow-on-linux.patch
 Patch3: chromium-nacl-llvm-ar.patch
 Patch4: chromium-python2.patch
 Patch5: chromium-base-unittests-icu-fix.patch
 Patch6: chromium-fix-re2-set_utf8.patch
-
-Patch8: chromium-gl_defines_fix.patch
-Patch9: chromium-remove-no-canonical-prefixes.patch
-Patch10: chromium-swiftshader-default-visibility.patch
-Patch11: chromium-unbundle-zlib.patch
-Patch12: chromium-freeworld/chromium-webrtc-r0.patch
+Patch7: chromium-gl_defines_fix.patch
+Patch8: chromium-remove-no-canonical-prefixes.patch
+Patch9: chromium-swiftshader-default-visibility.patch
+Patch10: chromium-unbundle-zlib.patch
+Patch11: gpu-timeout.patch
+# VAAPI
+Patch12: enable-vaapi-on-linux.diff
+#
+Patch13: libstdc-fix-incomplete-type-in-AXTree-for-NodeSetSiz.patch
+Patch14: chromium-83-gcc-10.patch 
+Patch15: chromium_ffmpeg_prop.patch
+Patch16: chromium-libstdc++-fix-iterator-any_of.patch
+Patch17: chromium-libstdc++-fix-iterator-all_of.patch
+Patch18: chromium-add-missing-include-find.patch
+Patch19: chromium-add-missing-include-numeric_limits.patch
+Patch20: chromium-add-missing-include-unique_ptr.patch
+Patch21: chromium-avoid-double-destruction-of-ServiceWorkerObjectHost.patch
 
 Patch22: gtk2.patch
-
-# VAAPI
-Patch23: gpu-timeout.patch
-Patch24: rebuild-Linux-frame-button-cache-when-activation.patch
-Patch25: rename-Relayout-in-DesktopWindowTreeHostPlatform.patch
-Patch26: chromium-81-gcc-10.patch
-
-Patch27: vaapi-build-fix.patch
-Patch29: eglGetMscRateCHROMIUM.patch
-
 
 ExclusiveArch: x86_64 
 
@@ -209,6 +202,7 @@ BuildRequires: hwdata
 BuildRequires: gn 
 BuildRequires: java-1.8.0-openjdk
 BuildRequires: xz
+BuildRequires: unzip
 #BuildRequires: glibc32
 BuildRequires: libgcc(x86-32) 
 BuildRequires: glibc(x86-32) 
@@ -243,13 +237,6 @@ BuildRequires: pkgconfig(libffi)
 BuildRequires: python2-rpm-macros
 #BuildRequires: python-beautifulsoup4
 #BuildRequires: python-html5lib
-%if %{with system_jinja2}
-%if 0%{?fedora} >= 24
-BuildRequires: python2-jinja2
-%else
-BuildRequires: python-jinja2
-%endif
-%endif
 
 %if %{with system_markupsafe}
 %if 0%{?fedora} >= 26
@@ -316,7 +303,7 @@ BuildRequires: libicu-devel
 %endif
 # ffmpeg external conditional
 %if %{with system_ffmpeg}
-BuildRequires: ffmpeg-devel >= 4.1
+BuildRequires: ffmpeg-devel >= 4.3
 %endif
 %if %{with vaapi}
 BuildRequires:	libva-devel 
@@ -350,6 +337,14 @@ BuildRequires:	pipewire0.2-devel
 %else
 BuildRequires:	pipewire-devel >= 0.2
 %endif
+
+BuildRequires:	python2-jinja2
+	
+# gn needs these
+#BuildRequires:  libstdc++-static
+#BuildRequires:	libstdc++-devel, openssl-devel
+
+BuildRequires:  nasm
 
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
@@ -458,7 +453,7 @@ sed -i 's|Developer Build|UnitedRPMs Build|' components/version_ui_strings.grdp
 %if %{with clang_bundle}
 tar xJf %{S:23} -C %{_builddir}
 pushd %{_builddir}
-mv -f clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04 buclang 
+mv -f clang+llvm-9.0.0-x86_64-pc-linux-gnu buclang 
 pushd buclang/lib/
 ln -sf /usr/lib64/libz3.so.0.0.0 libz3.so.4.8
 popd
@@ -516,16 +511,18 @@ pushd third_party/
 rm -rf markupsafe/
 ln -sf %{python2_sitearch}/markupsafe/ markupsafe
 popd
-%else
-pushd third_party
-rm -rf markupsafe/
-mkdir -p markupsafe
-tar xmzvf %{S:22} -C $PWD/
-# git clone --depth 1 https://github.com/pallets/markupsafe.git $PWD/markupsafe
-cp -f $PWD/markupsafe-1.1.1/src/markupsafe/*.py $PWD/markupsafe/
-cp -f $PWD/markupsafe-1.1.1/src/markupsafe/*.c $PWD/markupsafe/
-popd
 %endif
+
+
+#pushd third_party
+#rm -rf markupsafe/
+#mkdir -p markupsafe
+#tar xmzvf %{S:22} -C $PWD/
+# git clone --depth 1 https://github.com/pallets/markupsafe.git $PWD/markupsafe
+#cp -f $PWD/markupsafe-1.1.1/src/markupsafe/*.py $PWD/markupsafe/
+#cp -f $PWD/markupsafe-1.1.1/src/markupsafe/*.c $PWD/markupsafe/
+#popd
+
 
 # node fix
 mkdir -p third_party/node/linux/node-linux-x64/bin/
@@ -559,32 +556,33 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 
 # Patches, disabled autosetup
 
+#patch0 -p1
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
 %patch6 -p1
-
+%patch7 -p1
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
 %patch11 -p1
-
-
-%patch23 -p1
-%patch24 -p1
-%patch25 -p1
-%patch26 -p1
+%patch12 -p1
+%patch13 -p1
+%patch14 -p1
+%patch15 -p1
+%patch16 -p1
+%patch17 -p1
+%patch18 -p1
+%patch19 -p1
+%patch20 -p1
+%patch21 -p1
 
 %if %{with gtk2}
 %patch22 -p1
 %endif
-%if %{with vaapi}
-%patch27 -p1
 
-%patch29 -p1
-%endif
 
 
 # Change shebang in all relevant files in this directory and all subdirectories
@@ -592,6 +590,14 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 # find -type f -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 find -depth -type f -writable -name "*.py" -exec sed -iE '1s=^#! */usr/bin/\(python\|env python\)[23]\?=#!%{__python2}=' {} +
 
+# HEVC support
+cp -f third_party/ffmpeg/libavcodec/hevcdec.c third_party/ffmpeg/libavcodec/autorename_libavcodec_hevcdec.c
+cp -f third_party/ffmpeg/libavformat/hevc.c  third_party/ffmpeg/libavformat/autorename_libavformat_hevc.c
+
+sed -i 's|define CONFIG_HEVC_DECODER 0|define CONFIG_HEVC_DECODER 1|g' third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h
+sed -i 's|define CONFIG_HEVC_PARSER 0|define CONFIG_HEVC_PARSER 1|g' third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h
+sed -i 's|define CONFIG_HEVC_DEMUXER 0|define CONFIG_HEVC_DEMUXER 1|g' third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h
+#
 
 # python2 fix
 mkdir -p "$HOME/bin/"
@@ -667,6 +673,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/devscripts \
     third_party/devtools-frontend \
     third_party/devtools-frontend/src/front_end/third_party/fabricjs \
+    third_party/devtools-frontend/src/front_end/third_party/lighthouse \
     third_party/devtools-frontend/src/front_end/third_party/wasmparser \
     third_party/devtools-frontend/src/third_party \
     third_party/dom_distiller_js \
@@ -703,6 +710,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/llvm \
     third_party/lss \
     third_party/lzma_sdk \
+    third_party/mako \
     third_party/metrics_proto \
     third_party/modp_b64 \
     third_party/nasm \
@@ -732,6 +740,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/qcms \
     third_party/rnnoise \
     third_party/s2cellid \
+    third_party/schema_org \
     third_party/skia \
     third_party/skia/include/third_party/skcms \
     third_party/skia/include/third_party/vulkan/vulkan \
@@ -742,6 +751,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/SPIRV-Tools \
     third_party/sqlite \
     third_party/swiftshader \
+    third_party/swiftshader/third_party/astc-encoder \
     third_party/swiftshader/third_party/llvm-7.0 \
     third_party/swiftshader/third_party/llvm-subzero \
     third_party/swiftshader/third_party/marl \
@@ -853,10 +863,9 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 sed -i '/-static-libstdc++/d' tools/gn/build/gen.py
 
 %if %{with system_jinja2}
-rmdir third_party/jinja2 
+rm -rf third_party/jinja2 
 ln -s %{python2_sitelib}/jinja2 third_party/jinja2
 %endif
-
 
 %if %{with system_ply}
 rm -rf third_party/ply
@@ -897,6 +906,12 @@ sed -i \
     
 sed -i \
     -e '/"-Wno-misleading-indentation"/d' build/config/compiler/BUILD.gn    
+    
+sed -i \
+    -e '/"-Wno-non-c-typedef-for-linkage"/d' build/config/compiler/BUILD.gn 
+      
+sed -i \
+    -e '/"-Wno-enum-float-conversion"/d' build/config/compiler/BUILD.gn           
             
 sed -i \
     -e '/"-Qunused-arguments"/d' \
@@ -904,8 +919,7 @@ sed -i \
 
 %endif
 
-# Force script incompatible with Python 3 to use /usr/bin/python2
-  sed -i '1s|python$|&2|' third_party/dom_distiller_js/protoc_plugins/*.py
+
 
 %build
 
@@ -924,6 +938,7 @@ export LDFLAGS="-O4 -L%{_builddir}/buclang/lib"
 %else
 export CC=clang
 export CXX=clang++
+export LD=lld
 %endif
 mkdir -p "$HOME/bin/"
 ln -sfn $CC $HOME/bin/gcc
@@ -963,19 +978,13 @@ _flags+=(
 %else
     'use_vaapi=false'
 %endif
-    'use_aura=true'
     'link_pulseaudio=true'
     'linux_use_bundled_binutils=false'
     'use_custom_libcxx=false'
     'use_lld=false'
-    'use_debug_fission=false'
     'use_allocator="none"'
-    'use_ozone=false'
-    'optimize_webui=false'
-    'enable_iterator_debugging=false'
     'use_cups=true'
     'use_gnome_keyring=false'
-    'use_gio=true'
     'use_gold=false'
     'use_kerberos=true'
     'use_pulseaudio=true'
@@ -984,6 +993,7 @@ _flags+=(
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
     'enable_nacl=false'
+    'enable_hevc_demuxing=true'
 %if %{with swiftshader}
     'enable_swiftshader=true'
 %else
@@ -1011,15 +1021,24 @@ _flags+=(
     'use_jumbo_build=true'
     'jumbo_file_merge_limit=8'
 %endif
-    'rtc_use_pipewire=true'
-    'rtc_link_pipewire=true'
-    'concurrent_links=1'
+    'fastbuild=true'
+    'remove_webcore_debug_symbols=true'
+    'enable_platform_hevc=true'
+    'enable_platform_ac3_eac3_audio=true'
+    'enable_platform_mpeg_h_audio=true'
+    'enable_platform_dolby_vision=true'
+    'enable_mse_mpeg2ts_stream_parser=true'
 )
 
 
-# Build files for Ninja #
-gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
+  # Do not warn about unknown warning options
+  CFLAGS+='   -Wno-unknown-warning-option'
+  CXXFLAGS+=' -Wno-unknown-warning-option'
 
+# Build files for Ninja #
+unzip %{S:25} -d $PWD
+$PWD/gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
+#gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
 
 
 # SUPER POWER!
@@ -1040,7 +1059,7 @@ jobs=$(grep processor /proc/cpuinfo | tail -1 | grep -o '[0-9]*')
 %if %{with system_ffmpeg}
 %ninja_build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
 %else
-%ninja_build -C out/Release third_party/widevine/cdm chrome -j$jobs 
+%ninja_build -C out/Release third_party/widevine/cdm media/ffmpeg chrome -j$jobs 
 %endif
 %endif
 
@@ -1323,6 +1342,12 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Mon Jun 22 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.106-653.1
+- Updated to 83.0.4103.106
+
+* Mon Jun 08 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.97-19.1
+- Updated to 83.0.4103.97
 
 * Fri May 29 2020 - David Va <davidva AT tuta DOT io> 81.0.4044.138-607.1
 - Rebuilt

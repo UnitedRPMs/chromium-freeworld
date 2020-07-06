@@ -1,0 +1,20 @@
+--- a/third_party/ffmpeg/chromium/scripts/build_ffmpeg.py	2020-06-29 18:01:17.311472221 -0600
++++ b/third_party/ffmpeg/chromium/scripts/build_ffmpeg-new.py	2020-06-29 22:11:09.770820795 -0600
+@@ -870,13 +870,13 @@
+           '--ld=cygwin-wrapper link',
+           '--nm=cygwin-wrapper dumpbin -symbols',
+           '--ar=cygwin-wrapper lib',
+-      ])
++    ])
+ 
+   # Google Chrome & ChromeOS specific configuration.
+   configure_flags['Chrome'].extend([
+-      '--enable-decoder=aac,h264',
+-      '--enable-demuxer=aac',
+-      '--enable-parser=aac,h264',
++      '--enable-decoder=aac,hevc,ac3,aac3,h264,mp1,mp2,mpeg4,mpegvideo,msmpeg4v1,msmpeg4v2,msmpeg4v3,flv,dca,flac',
++      '--enable-demuxer=aac,hevc,ac3,h264,mp4,m4v,mpegvideo,mpegts,avi,flv,dts,dtshd,vc1,flac',
++      '--enable-parser=aac,hevc,ac3,aac3,h261,h263,h264,mepgvideo,mpeg4video,dca,vc1,flac',
+   ])
+ 
+   # Google ChromeOS specific configuration.
