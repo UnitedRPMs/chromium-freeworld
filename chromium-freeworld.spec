@@ -58,7 +58,11 @@
 # 
 
 # About clang bundle: Necessary in cases where "clang" in system, fails to build chromium.
+%if 0%{?fedora} <= 30
+%bcond_without clang_bundle
+%else
 %bcond_with clang_bundle
+%endif
 
 # jinja conditional
 %bcond_with system_jinja2
@@ -110,7 +114,7 @@
 %define _legacy_common_support 1
 
 Name:       chromium-freeworld
-Version:    83.0.4103.106
+Version:    83.0.4103.116
 Release:    653.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
@@ -141,7 +145,7 @@ Source12:   chromium-freeworld.xml
 Source13:   chromium-freeworld.appdata.xml
 
 # Unpackaged fonts
-Source14:   https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/Garuda.ttf
+Source14:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fonts/Garuda.ttf
 Source15:	https://fontlibrary.org/assets/downloads/gelasio/4d610887ff4d445cbc639aae7828d139/gelasio.zip
 Source16:	http://download.savannah.nongnu.org/releases/freebangfont/MuktiNarrow-0.94.tar.bz2
 Source17:	https://chromium.googlesource.com/chromium/src.git/+archive/refs/heads/master/third_party/test_fonts.tar.gz
@@ -188,6 +192,11 @@ Patch20: chromium-add-missing-include-unique_ptr.patch
 Patch21: chromium-avoid-double-destruction-of-ServiceWorkerObjectHost.patch
 
 Patch22: gtk2.patch
+
+Patch23: chromium-fix-vaapi-on-intel.patch
+Patch24: force-mp3-files-to-have-a-start-time-of-zero.patch
+Patch25: wayland-egl.patch
+Patch26: chromium-ffmpeg-4.3.patch
 
 ExclusiveArch: x86_64 
 
@@ -583,7 +592,10 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 %patch22 -p1
 %endif
 
-
+%patch23 -p1
+%patch24 -p1
+%patch25 -p1
+%patch26 -p1
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
@@ -1343,7 +1355,10 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 
 %changelog
 
-* Mon Jun 22 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.106-653.1
+* Wed Jul 15 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.116
+- Updated to 83.0.4103.116
+
+* Mon Jun 22 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.106
 - Updated to 83.0.4103.106
 
 * Mon Jun 08 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.97-19.1
