@@ -138,6 +138,6 @@ if [ $want_debug -eq 1 ] ; then
   $GDB "$LIBDIR/$APPNAME" -x $tmpfile
   exit $?
 else
-  exec $LIBDIR/$APPNAME -u ${CHROMIUM_FLAGS} ${PEPPERFLASH} "--password-store=basic" "--enable-plugins" "--enable-extensions" "--enable-user-scripts" "--enable-printing" "--enable-zero-copy" "$@"
+  exec $LIBDIR/$APPNAME -u ${CHROMIUM_FLAGS} ${PEPPERFLASH} "--password-store=basic" "--enable-plugins" "--enable-extensions" "--enable-user-scripts" "--enable-printing" "--enable-native-gpu-memory-buffers" "--enable-gpu-rasterization" "--enable-accelerated-video-decode" "--enable-zero-copy" "$@"
 fi
 

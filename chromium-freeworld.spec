@@ -58,7 +58,7 @@
 # 
 
 # About clang bundle: Necessary in cases where "clang" in system, fails to build chromium.
-%if 0%{?fedora} <= 30
+%if 0%{?fedora} <= 32
 %bcond_without clang_bundle
 %else
 %bcond_with clang_bundle
@@ -114,8 +114,8 @@
 %define _legacy_common_support 1
 
 Name:       chromium-freeworld
-Version:    83.0.4103.116
-Release:    653.1
+Version:    86.0.4240.111
+Release:    13.1
 Summary:    An open-source project that aims to build a safer, faster, and more stable browser
 
 Group:      Applications/Internet
@@ -157,7 +157,7 @@ Source21:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/fon
 Source22:	https://github.com/pallets/markupsafe/archive/1.1.1.tar.gz
 # Clang bundle
 %if %{with clang_bundle}
-Source23:	https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz
+Source23:	https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/clang+llvm-11.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz
 %endif
 # V8 missed/test 
 #Source24:	https://github.com/v8/v8/archive/7.5.48.tar.gz
@@ -166,37 +166,31 @@ Source25:	https://github.com/UnitedRPMs/chromium-freeworld/releases/download/gn/
 
 #----------------------------------------------------------------------------------------------------------------------------
 # Patches 
-Patch0: chromium-compiler-r12.patch
-Patch1: widevine-other-locations.patch
+Patch0: only-fall-back-to-the-i965-driver-if-we-re-on-iHD.patch
+Patch1: check-for-enable-accelerated-video-decode-on-Linux.patch
 Patch2: widevine-allow-on-linux.patch
 Patch3: chromium-nacl-llvm-ar.patch
 Patch4: chromium-python2.patch
-Patch5: chromium-base-unittests-icu-fix.patch
-Patch6: chromium-fix-re2-set_utf8.patch
-Patch7: chromium-gl_defines_fix.patch
-Patch8: chromium-remove-no-canonical-prefixes.patch
-Patch9: chromium-swiftshader-default-visibility.patch
-Patch10: chromium-unbundle-zlib.patch
-Patch11: gpu-timeout.patch
+Patch5: chromium-79-gcc-protobuf-alignas.patch
+Patch6: chromium-80-QuicStreamSendBuffer-deleted-move-constructor.patch
+Patch7: chromium-84-blink-disable-clang-format.patch
+Patch8: chromium-fix-char_traits.patch
+Patch9: chromium-86-nearby-explicit.patch
+Patch10: chromium-86-nearby-include.patch
+Patch11: chromium-86-compiler.patch
+Patch13: chromium-86-ServiceWorkerRunningInfo-noexcept.patch
+Patch14: chromium-86-ConsumeDurationNumber-constexpr.patch
+Patch15: chromium-86-ImageMemoryBarrierData-init.patch
+Patch16: chromium-remove-new-lld-flags.patch
+Patch17: chromium-gl_defines_fix.patch
+
 # VAAPI
 Patch12: enable-vaapi-on-linux.diff
 #
-Patch13: libstdc-fix-incomplete-type-in-AXTree-for-NodeSetSiz.patch
-Patch14: chromium-83-gcc-10.patch 
-Patch15: chromium_ffmpeg_prop.patch
-Patch16: chromium-libstdc++-fix-iterator-any_of.patch
-Patch17: chromium-libstdc++-fix-iterator-all_of.patch
-Patch18: chromium-add-missing-include-find.patch
-Patch19: chromium-add-missing-include-numeric_limits.patch
-Patch20: chromium-add-missing-include-unique_ptr.patch
-Patch21: chromium-avoid-double-destruction-of-ServiceWorkerObjectHost.patch
 
 Patch22: gtk2.patch
 
-Patch23: chromium-fix-vaapi-on-intel.patch
-Patch24: force-mp3-files-to-have-a-start-time-of-zero.patch
-Patch25: wayland-egl.patch
-Patch26: chromium-ffmpeg-4.3.patch
+
 
 ExclusiveArch: x86_64 
 
@@ -350,8 +344,8 @@ BuildRequires:	pipewire-devel >= 0.2
 BuildRequires:	python2-jinja2
 	
 # gn needs these
-#BuildRequires:  libstdc++-static
-#BuildRequires:	libstdc++-devel, openssl-devel
+BuildRequires:  libstdc++-static
+BuildRequires:	libstdc++-devel, openssl-devel
 
 BuildRequires:  nasm
 
@@ -462,7 +456,7 @@ sed -i 's|Developer Build|UnitedRPMs Build|' components/version_ui_strings.grdp
 %if %{with clang_bundle}
 tar xJf %{S:23} -C %{_builddir}
 pushd %{_builddir}
-mv -f clang+llvm-9.0.0-x86_64-pc-linux-gnu buclang 
+mv -f clang+llvm-11.0.0-x86_64-linux-gnu-ubuntu-20.04 buclang 
 pushd buclang/lib/
 ln -sf /usr/lib64/libz3.so.0.0.0 libz3.so.4.8
 popd
@@ -565,37 +559,28 @@ sed -r -i 's/xlocale.h/locale.h/' buildtools/third_party/libc++/trunk/include/__
 
 # Patches, disabled autosetup
 
-#patch0 -p1
+#patch12 -p1
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch6 -p1
-%patch7 -p1
-%patch8 -p1
+#patch6 -p1
+#patch7 -p1
+#patch8 -p1
 %patch9 -p1
 %patch10 -p1
 %patch11 -p1
-%patch12 -p1
 %patch13 -p1
 %patch14 -p1
 %patch15 -p1
-%patch16 -p1
+#patch16 -p1
 %patch17 -p1
-%patch18 -p1
-%patch19 -p1
-%patch20 -p1
-%patch21 -p1
 
 %if %{with gtk2}
 %patch22 -p1
 %endif
 
-%patch23 -p1
-%patch24 -p1
-%patch25 -p1
-%patch26 -p1
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
@@ -659,7 +644,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/breakpad \
     third_party/breakpad/breakpad/src/third_party/curl \
     third_party/brotli \
-    third_party/cacheinvalidation \
     third_party/catapult \
     third_party/catapult/common/py_vulcanize/third_party/rcssmin \
     third_party/catapult/common/py_vulcanize/third_party/rjsmin \
@@ -684,8 +668,16 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/depot_tools \
     third_party/devscripts \
     third_party/devtools-frontend \
+    third_party/devtools-frontend/src/front_end/third_party/acorn \
+    third_party/devtools-frontend/src/front_end/third_party/chromium \
+    third_party/devtools-frontend/src/front_end/third_party/codemirror \
+    third_party/devtools-frontend/src/front_end/third_party/i18n \
     third_party/devtools-frontend/src/front_end/third_party/fabricjs \
+    third_party/devtools-frontend/src/front_end/third_party/intl-messageformat \
     third_party/devtools-frontend/src/front_end/third_party/lighthouse \
+    third_party/devtools-frontend/src/front_end/third_party/lit-html \
+    third_party/devtools-frontend/src/front_end/third_party/lodash-isequal \
+    third_party/devtools-frontend/src/front_end/third_party/marked \
     third_party/devtools-frontend/src/front_end/third_party/wasmparser \
     third_party/devtools-frontend/src/third_party \
     third_party/dom_distiller_js \
@@ -711,6 +703,7 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/libaom \
     third_party/libaom/source/libaom/third_party/vector \
     third_party/libaom/source/libaom/third_party/x86inc \
+    third_party/libavif \
     third_party/libjingle \
     third_party/libphonenumber \
     third_party/libsecret \
@@ -720,16 +713,20 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/libwebm \
     third_party/libyuv \
     third_party/llvm \
+    third_party/lottie \
     third_party/lss \
     third_party/lzma_sdk \
     third_party/mako \
     third_party/metrics_proto \
     third_party/modp_b64 \
     third_party/nasm \
+    third_party/nearby \
     third_party/node \
     third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2 \
     third_party/one_euro_filter \
+    third_party/opencv \
     third_party/openscreen \
+    third_party/openscreen/src/third_party/mozilla \
     third_party/openscreen/src/third_party/tinycbor \
     third_party/ots \
     third_party/perfetto \
@@ -753,6 +750,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/rnnoise \
     third_party/s2cellid \
     third_party/schema_org \
+    third_party/securemessage \
+    third_party/simplejson \
     third_party/skia \
     third_party/skia/include/third_party/skcms \
     third_party/skia/include/third_party/vulkan/vulkan \
@@ -764,19 +763,19 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/sqlite \
     third_party/swiftshader \
     third_party/swiftshader/third_party/astc-encoder \
-    third_party/swiftshader/third_party/llvm-7.0 \
     third_party/swiftshader/third_party/llvm-subzero \
     third_party/swiftshader/third_party/marl \
     third_party/swiftshader/third_party/SPIRV-Headers \
     third_party/swiftshader/third_party/subzero \
     third_party/tcmalloc \
+    third_party/ukey2 \
     third_party/unrar \
     third_party/usrsctp \
     third_party/vulkan \
     third_party/web-animations-js \
     third_party/webdriver \
     third_party/webrtc \
-    third_party/webrtc/common_audio/third_party/fft4g \
+    third_party/webrtc/common_audio/third_party/ooura \
     third_party/webrtc/common_audio/third_party/spl_sqrt_floor \
     third_party/webrtc/modules/third_party/fft \
     third_party/webrtc/modules/third_party/g711 \
@@ -786,6 +785,8 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/widevine \
     third_party/woff2 \
     third_party/wuffs \
+    third_party/xcbproto \
+    third_party/zxcvbn-cpp \
     third_party/zlib/google \
     url/third_party/mozilla \
     v8/src/third_party/siphash \
@@ -797,7 +798,6 @@ python2 build/linux/unbundle/remove_bundled_libraries.py --do-remove \
     third_party/speech-dispatcher \
     third_party/usb_ids \
     third_party/xdg-utils \
-    third_party/yasm/run_yasm.py \
     tools/gn/src/base/third_party/icu \
     third_party/libvpx \
     third_party/libvpx/source/libvpx/third_party/x86inc \
@@ -865,14 +865,13 @@ python2 build/linux/unbundle/replace_gn_files.py --system-libraries \
 %if %{with system_libicu}
     icu \
 %endif
-    yasm \
     opus \
     fontconfig \
     zlib
 
 
 # Don't use static libstdc++
-sed -i '/-static-libstdc++/d' tools/gn/build/gen.py
+#sed -i '/-static-libstdc++/d' tools/gn/build/gen.py
 
 %if %{with system_jinja2}
 rm -rf third_party/jinja2 
@@ -921,6 +920,18 @@ sed -i \
     
 sed -i \
     -e '/"-Wno-non-c-typedef-for-linkage"/d' build/config/compiler/BUILD.gn 
+    
+sed -i \
+    -e '/"-Wno-psabi"/d' build/config/compiler/BUILD.gn    
+    
+sed -i \
+    -e '/"-Wno-string-concatenation"/d' build/config/compiler/BUILD.gn 
+    
+sed -i \
+    -e '/"-Wextra-tokens"/d' build/config/compiler/BUILD.gn   
+
+sed -i \
+    -e '/"-Wmax-tokens"/d' build/config/compiler/BUILD.gn           
       
 sed -i \
     -e '/"-Wno-enum-float-conversion"/d' build/config/compiler/BUILD.gn           
@@ -930,7 +941,6 @@ sed -i \
     build/config/compiler/BUILD.gn
 
 %endif
-
 
 
 %build
@@ -991,7 +1001,6 @@ _flags+=(
     'use_vaapi=false'
 %endif
     'link_pulseaudio=true'
-    'linux_use_bundled_binutils=false'
     'use_custom_libcxx=false'
     'use_lld=false'
     'use_allocator="none"'
@@ -1005,7 +1014,6 @@ _flags+=(
     'enable_hangout_services_extension=true'
     'enable_widevine=true'
     'enable_nacl=false'
-    'enable_hevc_demuxing=true'
 %if %{with swiftshader}
     'enable_swiftshader=true'
 %else
@@ -1033,23 +1041,20 @@ _flags+=(
     'use_jumbo_build=true'
     'jumbo_file_merge_limit=8'
 %endif
-    'fastbuild=true'
     'remove_webcore_debug_symbols=true'
-    'enable_platform_hevc=true'
-    'enable_platform_ac3_eac3_audio=true'
-    'enable_platform_mpeg_h_audio=true'
-    'enable_platform_dolby_vision=true'
-    'enable_mse_mpeg2ts_stream_parser=true'
 )
 
 
   # Do not warn about unknown warning options
   CFLAGS+='   -Wno-unknown-warning-option'
   CXXFLAGS+=' -Wno-unknown-warning-option'
+  
+  tools/gn/bootstrap/bootstrap.py -v --no-clean --gn-gen-args="${_flags[*]}"  
 
 # Build files for Ninja #
-unzip %{S:25} -d $PWD
-$PWD/gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
+#unzip %{S:25} -d $PWD
+#$PWD/gn 
+out/Release/gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
 #gn gen out/Release --args="${_flags[*]}" --script-executable=/usr/bin/python2   
 
 
@@ -1291,6 +1296,7 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %{chromiumdir}/mksnapshot
 %{chromiumdir}/pyproto/
 %{chromiumdir}/resources/inspector/
+%{chromiumdir}/resources/inspector_overlay/
 %if %{with swiftshader}
 %{chromiumdir}/swiftshader/
 %endif
@@ -1354,6 +1360,12 @@ getent group chrome-remote-desktop >/dev/null || groupadd -r chrome-remote-deskt
 %endif
 
 %changelog
+
+* Sat Oct 24 2020 - David Va <davidva AT tuta DOT io> 86.0.4240.111
+- Updated to 86.0.4240.111
+
+* Fri Oct 23 2020 - David Va <davidva AT tuta DOT io> 86.0.4240.75
+- Updated to 86.0.4240.75
 
 * Wed Jul 15 2020 - David Va <davidva AT tuta DOT io> 83.0.4103.116
 - Updated to 83.0.4103.116
